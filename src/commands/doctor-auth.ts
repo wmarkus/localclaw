@@ -1,0 +1,146 @@
+import type { OpenClawConfig } from "../config/config.js";
+import type { DoctorPrompter } from "./doctor-prompter.js";
+import {
+  buildAuthHealthSummary,
+  DEFAULT_OAUTH_WARN_MS,
+  formatRemainingShort,
+} from "../agents/auth-health.js";
+import {
+  ensureAuthProfileStore,
+  resolveApiKeyForProfile,
+  resolveProfileUnusableUntilForDisplay,
+} from "../agents/auth-profiles.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { note } from "../terminal/note.js";
+
+export async function maybeRemoveDeprecatedCliAuthProfiles(
+  cfg: OpenClawConfig,
+  prompter: DoctorPrompter,
+): Promise<OpenClawConfig> {
+  void prompter;
+  return cfg;
+}
+
+type AuthIssue = {
+  profileId: string;
+  provider: string;
+  status: string;
+  remainingMs?: number;
+};
+
+function formatAuthIssueHint(_issue: AuthIssue): string | null {
+  return `Re-auth via \`${formatCliCommand("openclaw configure")}\` or \`${formatCliCommand("openclaw onboard")}\`.`;
+}
+
+function formatAuthIssueLine(issue: AuthIssue): string {
+  const remaining =
+    issue.remainingMs !== undefined ? ` (${formatRemainingShort(issue.remainingMs)})` : "";
+  const hint = formatAuthIssueHint(issue);
+  return `- ${issue.profileId}: ${issue.status}${remaining}${hint ? ` — ${hint}` : ""}`;
+}
+
+export async function noteAuthProfileHealth(params: {
+  cfg: OpenClawConfig;
+  prompter: DoctorPrompter;
+  allowKeychainPrompt: boolean;
+}): Promise<void> {
+  const store = ensureAuthProfileStore(undefined, {
+    allowKeychainPrompt: params.allowKeychainPrompt,
+  });
+  const unusable = (() => {
+    const now = Date.now();
+    const out: string[] = [];
+    for (const profileId of Object.keys(store.usageStats ?? {})) {
+      const until = resolveProfileUnusableUntilForDisplay(store, profileId);
+      if (!until || now >= until) {
+        continue;
+      }
+      const stats = store.usageStats?.[profileId];
+      const remaining = formatRemainingShort(until - now);
+      const kind =
+        typeof stats?.disabledUntil === "number" && now < stats.disabledUntil
+          ? `disabled${stats.disabledReason ? `:${stats.disabledReason}` : ""}`
+          : "cooldown";
+      const hint = kind.startsWith("disabled:billing")
+        ? "Top up credits (provider billing) or switch provider."
+        : "Wait for cooldown or switch provider.";
+      out.push(`- ${profileId}: ${kind} (${remaining})${hint ? ` — ${hint}` : ""}`);
+    }
+    return out;
+  })();
+
+  if (unusable.length > 0) {
+    note(unusable.join("\n"), "Auth profile cooldowns");
+  }
+
+  let summary = buildAuthHealthSummary({
+    store,
+    cfg: params.cfg,
+    warnAfterMs: DEFAULT_OAUTH_WARN_MS,
+  });
+
+  const findIssues = () =>
+    summary.profiles.filter(
+      (profile) =>
+        (profile.type === "oauth" || profile.type === "token") &&
+        (profile.status === "expired" ||
+          profile.status === "expiring" ||
+          profile.status === "missing"),
+    );
+
+  let issues = findIssues();
+  if (issues.length === 0) {
+    return;
+  }
+
+  const shouldRefresh = await params.prompter.confirmRepair({
+    message: "Refresh expiring OAuth tokens now? (static tokens need re-auth)",
+    initialValue: true,
+  });
+
+  if (shouldRefresh) {
+    const refreshTargets = issues.filter(
+      (issue) =>
+        issue.type === "oauth" && ["expired", "expiring", "missing"].includes(issue.status),
+    );
+    const errors: string[] = [];
+    for (const profile of refreshTargets) {
+      try {
+        await resolveApiKeyForProfile({
+          cfg: params.cfg,
+          store,
+          profileId: profile.profileId,
+        });
+      } catch (err) {
+        errors.push(`- ${profile.profileId}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    if (errors.length > 0) {
+      note(errors.join("\n"), "OAuth refresh errors");
+    }
+    summary = buildAuthHealthSummary({
+      store: ensureAuthProfileStore(undefined, {
+        allowKeychainPrompt: false,
+      }),
+      cfg: params.cfg,
+      warnAfterMs: DEFAULT_OAUTH_WARN_MS,
+    });
+    issues = findIssues();
+  }
+
+  if (issues.length > 0) {
+    note(
+      issues
+        .map((issue) =>
+          formatAuthIssueLine({
+            profileId: issue.profileId,
+            provider: issue.provider,
+            status: issue.status,
+            remainingMs: issue.remainingMs,
+          }),
+        )
+        .join("\n"),
+      "Model auth",
+    );
+  }
+}

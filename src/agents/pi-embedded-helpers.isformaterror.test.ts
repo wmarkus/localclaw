@@ -1,0 +1,24 @@
+import { describe, expect, it } from "vitest";
+import { isFormatError } from "./pi-embedded-helpers.js";
+
+describe("isFormatError", () => {
+  it("matches format errors", () => {
+    const samples = [
+      "INVALID_REQUEST_ERROR: string should match pattern",
+      "messages.1.content.1.tool_use.id",
+      "tool_use.id should match pattern",
+      "invalid request format",
+    ];
+    for (const sample of samples) {
+      expect(isFormatError(sample)).toBe(true);
+    }
+  });
+  it("ignores unrelated errors", () => {
+    expect(isFormatError("rate limit exceeded")).toBe(false);
+    expect(
+      isFormatError(
+        '400 {"type":"error","error":{"type":"invalid_request_error","message":"messages.84.content.1.image.source.base64.data: At least one of the image dimensions exceed max allowed size for many-image requests: 2000 pixels"}}',
+      ),
+    ).toBe(false);
+  });
+});

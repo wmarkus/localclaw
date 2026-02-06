@@ -1,0 +1,83 @@
+import AppKit
+import OpenClawDiscovery
+import OpenClawIPC
+import Foundation
+import SwiftUI
+
+extension OnboardingView {
+    func selectLocalGateway() {
+        self.state.connectionMode = .local
+        self.preferredGatewayID = nil
+        self.showAdvancedConnection = false
+        GatewayDiscoveryPreferences.setPreferredStableID(nil)
+    }
+
+    func selectUnconfiguredGateway() {
+        Task { await self.onboardingWizard.cancelIfRunning() }
+        self.state.connectionMode = .unconfigured
+        self.preferredGatewayID = nil
+        self.showAdvancedConnection = false
+        GatewayDiscoveryPreferences.setPreferredStableID(nil)
+    }
+
+    func selectRemoteGateway(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) {
+        Task { await self.onboardingWizard.cancelIfRunning() }
+        self.preferredGatewayID = gateway.stableID
+        GatewayDiscoveryPreferences.setPreferredStableID(gateway.stableID)
+
+        if self.state.remoteTransport == .direct {
+            if let url = GatewayDiscoveryHelpers.directUrl(for: gateway) {
+                self.state.remoteUrl = url
+            }
+        } else if let host = GatewayDiscoveryHelpers.sanitizedTailnetHost(gateway.tailnetDns) ?? gateway.lanHost {
+            let user = NSUserName()
+            self.state.remoteTarget = GatewayDiscoveryModel.buildSSHTarget(
+                user: user,
+                host: host,
+                port: gateway.sshPort)
+            OpenClawConfigFile.setRemoteGatewayUrl(host: host, port: gateway.gatewayPort)
+        }
+        self.state.remoteCliPath = gateway.cliPath ?? ""
+
+        self.state.connectionMode = .remote
+        MacNodeModeCoordinator.shared.setPreferredGatewayStableID(gateway.stableID)
+    }
+
+    func openSettings(tab: SettingsTab) {
+        SettingsTabRouter.request(tab)
+        self.openSettings()
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .openclawSelectSettingsTab, object: tab)
+        }
+    }
+
+    func handleBack() {
+        withAnimation {
+            self.currentPage = max(0, self.currentPage - 1)
+        }
+    }
+
+    func handleNext() {
+        if self.isWizardBlocking { return }
+        if self.currentPage < self.pageCount - 1 {
+            withAnimation { self.currentPage += 1 }
+        } else {
+            self.finish()
+        }
+    }
+
+    func finish() {
+        UserDefaults.standard.set(true, forKey: "openclaw.onboardingSeen")
+        UserDefaults.standard.set(currentOnboardingVersion, forKey: onboardingVersionKey)
+        OnboardingController.shared.close()
+    }
+
+    func copyToPasteboard(_ text: String) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+        self.copied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.copied = false }
+    }
+
+}
