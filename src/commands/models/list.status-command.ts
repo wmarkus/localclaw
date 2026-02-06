@@ -1,5 +1,10 @@
 import type { RuntimeEnv } from "../../runtime.js";
+import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
 import { resolveAgentDir, resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
+import {
+  ensureAuthProfileStore,
+  resolveAuthStorePathForDisplay,
+} from "../../agents/auth-profiles.js";
 import {
   resolveConfiguredModelRef,
   resolveDefaultModelForAgent,
@@ -29,9 +34,9 @@ export async function modelsStatusCommand(
 ) {
   ensureFlagCompatibility(opts);
   const cfg = loadConfig();
+  const mainAgentDir = resolveOpenClawAgentDir();
   const agentId = resolveKnownAgentId({ cfg, rawAgentId: opts.agent });
-  const agentDir = agentId ? resolveAgentDir(cfg, agentId) : undefined;
-  void agentDir;
+  const agentDir = agentId ? resolveAgentDir(cfg, agentId) : mainAgentDir;
 
   const resolved = agentId
     ? resolveDefaultModelForAgent({ cfg, agentId })
@@ -52,7 +57,8 @@ export async function modelsStatusCommand(
 
   const rawDefaultsModel =
     typeof modelConfig === "string" ? modelConfig.trim() : (modelConfig?.primary?.trim() ?? "");
-  const defaultLabel = rawDefaultsModel || `${resolved.provider}/${resolved.model}`;
+  const resolvedDefault = `${resolved.provider}/${resolved.model}`;
+  const defaultLabel = agentId ? resolvedDefault : rawDefaultsModel || resolvedDefault;
   const defaultsFallbacks = typeof modelConfig === "object" ? (modelConfig?.fallbacks ?? []) : [];
   const fallbacks = agentId
     ? (resolveAgentModelFallbacksOverride(cfg, agentId) ?? defaultsFallbacks)
@@ -61,12 +67,22 @@ export async function modelsStatusCommand(
     typeof imageConfig === "string" ? imageConfig.trim() : (imageConfig?.primary?.trim() ?? "");
   const imageFallbacks = typeof imageConfig === "object" ? (imageConfig?.fallbacks ?? []) : [];
 
+  const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
+  const auth = {
+    storePath: resolveAuthStorePathForDisplay(agentDir),
+    count: Object.keys(authStore.profiles ?? {}).length,
+  };
+
   const payload = {
+    agentId: agentId ?? undefined,
+    agentDir,
+    resolvedDefault,
     defaultModel: defaultLabel,
     fallbacks,
     imageModel: imageModel || null,
     imageFallbacks,
     providers: Object.keys(cfg.models?.providers ?? {}),
+    auth,
   };
 
   if (opts.json) {

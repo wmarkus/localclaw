@@ -3,6 +3,7 @@ import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
 import { createServer } from "node:http";
 import { describe, expect, it } from "vitest";
 import type { ResolvedZaloAccount } from "./types.js";
+import { canListenOnLoopback } from "../../../src/browser/test-helpers.js";
 import { handleZaloWebhookRequest, registerZaloWebhookTarget } from "./monitor.js";
 
 async function withServer(
@@ -24,7 +25,9 @@ async function withServer(
   }
 }
 
-describe("handleZaloWebhookRequest", () => {
+const describeLoopback = (await canListenOnLoopback()) ? describe : describe.skip;
+
+describeLoopback("handleZaloWebhookRequest", () => {
   it("returns 400 for non-object payloads", async () => {
     const core = {} as PluginRuntime;
     const account: ResolvedZaloAccount = {

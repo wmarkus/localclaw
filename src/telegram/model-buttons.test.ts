@@ -200,7 +200,7 @@ describe("buildModelsKeyboard", () => {
   it("truncates long model IDs for display", () => {
     // Model ID that's long enough to truncate display but still fits in callback_data
     // callback_data = "mdl_sel_ollama/" (18) + model (<=46) = 64 max
-    const longModel = "gpt-oss-3-5-sonnet-20241022-with-suffix";
+    const longModel = "gpt-oss-3-5-sonnet-20241022-with-suffi";
     const result = buildModelsKeyboard({
       provider: "ollama",
       models: [longModel],

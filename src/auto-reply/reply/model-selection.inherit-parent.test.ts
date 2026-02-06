@@ -65,7 +65,7 @@ describe("createModelSelectionState parent inheritance", () => {
     });
 
     expect(state.provider).toBe("ollama");
-    expect(state.model).toBe("gpt-4o");
+    expect(state.model).toBe("local-medium");
   });
 
   it("derives parent key from topic session suffix", async () => {
@@ -90,7 +90,7 @@ describe("createModelSelectionState parent inheritance", () => {
     });
 
     expect(state.provider).toBe("ollama");
-    expect(state.model).toBe("gpt-4o");
+    expect(state.model).toBe("local-medium");
   });
 
   it("prefers child override over parent", async () => {

@@ -426,6 +426,21 @@ export function resolveModelDirectiveSelection(params: {
     };
   };
 
+  const pickSingleAllowedSelection = (): ModelDirectiveSelection | undefined => {
+    if (allowedModelKeys.size !== 1) {
+      return undefined;
+    }
+    const [onlyKey] = allowedModelKeys;
+    if (!onlyKey) {
+      return undefined;
+    }
+    const slash = onlyKey.indexOf("/");
+    if (slash <= 0 || slash >= onlyKey.length - 1) {
+      return undefined;
+    }
+    return buildSelection(onlyKey.slice(0, slash), onlyKey.slice(slash + 1));
+  };
+
   const resolveFuzzy = (params: {
     provider?: string;
     fragment: string;
@@ -534,6 +549,10 @@ export function resolveModelDirectiveSelection(params: {
     if (fuzzy.selection || fuzzy.error) {
       return fuzzy;
     }
+    const fallback = pickSingleAllowedSelection();
+    if (fallback) {
+      return { selection: fallback };
+    }
     return {
       error: `Unrecognized model "${rawTrimmed}". Use /models to list providers, or /models <provider> to list models.`,
     };
@@ -567,6 +586,11 @@ export function resolveModelDirectiveSelection(params: {
   const fuzzy = resolveFuzzy({ fragment: rawTrimmed });
   if (fuzzy.selection || fuzzy.error) {
     return fuzzy;
+  }
+
+  const fallback = pickSingleAllowedSelection();
+  if (fallback) {
+    return { selection: fallback };
   }
 
   return {

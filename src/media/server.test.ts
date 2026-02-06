@@ -2,6 +2,7 @@ import type { AddressInfo } from "node:net";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { canListenOnLoopback } from "../browser/test-helpers.js";
 
 const MEDIA_DIR = path.join(process.cwd(), "tmp-media-test");
 const cleanOldMedia = vi.fn().mockResolvedValue(undefined);
@@ -31,7 +32,9 @@ const waitForFileRemoval = async (file: string, timeoutMs = 200) => {
   throw new Error(`timed out waiting for ${file} removal`);
 };
 
-describe("media server", () => {
+const describeLoopback = (await canListenOnLoopback()) ? describe : describe.skip;
+
+describeLoopback("media server", () => {
   beforeAll(async () => {
     await fs.rm(MEDIA_DIR, { recursive: true, force: true });
     await fs.mkdir(MEDIA_DIR, { recursive: true });
