@@ -7,6 +7,7 @@ import {
   getChromeExtensionRelayAuthHeaders,
   stopChromeExtensionRelayServer,
 } from "./extension-relay.js";
+import { canListenOnLoopback } from "./test-helpers.js";
 
 async function getFreePort(): Promise<number> {
   while (true) {
@@ -41,6 +42,8 @@ function waitForError(ws: WebSocket) {
 function relayAuthHeaders(url: string) {
   return getChromeExtensionRelayAuthHeaders(url);
 }
+
+const describeLoopback = (await canListenOnLoopback()) ? describe : describe.skip;
 
 function createMessageQueue(ws: WebSocket) {
   const queue: string[] = [];
@@ -134,7 +137,7 @@ async function waitForListMatch<T>(
   }
 }
 
-describe("chrome extension relay server", () => {
+describeLoopback("chrome extension relay server", () => {
   let cdpUrl = "";
 
   afterEach(async () => {

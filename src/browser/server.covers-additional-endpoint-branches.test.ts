@@ -1,6 +1,7 @@
 import { type AddressInfo, createServer } from "node:net";
 import { fetch as realFetch } from "undici";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { canListenOnLoopback } from "./test-helpers.js";
 
 let testPort = 0;
 let _cdpBaseUrl = "";
@@ -8,6 +9,8 @@ let reachable = false;
 let cfgAttachOnly = false;
 let createTargetId: string | null = null;
 let prevGatewayPort: string | undefined;
+
+const describeLoopback = (await canListenOnLoopback()) ? describe : describe.skip;
 
 const cdpMocks = vi.hoisted(() => ({
   createTargetViaCdp: vi.fn(async () => {
@@ -184,7 +187,7 @@ function makeResponse(
   } as unknown as Response;
 }
 
-describe("browser control server", () => {
+describeLoopback("browser control server", () => {
   beforeEach(async () => {
     reachable = false;
     cfgAttachOnly = false;
@@ -312,7 +315,7 @@ describe("browser control server", () => {
   });
 });
 
-describe("backward compatibility (profile parameter)", () => {
+describeLoopback("backward compatibility (profile parameter)", () => {
   beforeEach(async () => {
     reachable = false;
     cfgAttachOnly = false;
