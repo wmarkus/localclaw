@@ -113,10 +113,11 @@ export function normalizeProviders(params: {
 
     if (normalizedKey !== "ollama") {
       if (normalizedKey) {
-        console.warn(`Ignoring non-ollama provider "${normalizedKey}" (local-only mode).`);
+        throw new Error(
+          `Provider "${normalizedKey}" is disabled in local-only mode. Use "ollama".`,
+        );
       }
-      mutated = true;
-      continue;
+      throw new Error('Provider "" is disabled in local-only mode. Use "ollama".');
     }
 
     if (normalizedKey === "ollama") {

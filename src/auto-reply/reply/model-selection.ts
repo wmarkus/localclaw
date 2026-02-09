@@ -2,7 +2,7 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { ThinkLevel } from "./directives.js";
 import { clearSessionAuthProfileOverride } from "../../agents/auth-profiles/session-override.js";
 import { lookupContextTokens } from "../../agents/context.js";
-import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
+import { DEFAULT_CONTEXT_TOKENS, DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { loadModelCatalog } from "../../agents/model-catalog.js";
 import {
   buildAllowedModelSet,
@@ -46,6 +46,7 @@ const FUZZY_VARIANT_TOKENS = [
   "small",
   "nano",
 ];
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
 
 function boundedLevenshteinDistance(a: string, b: string, maxDistance: number): number | null {
   if (a === b) {
@@ -352,7 +353,13 @@ export async function createModelSelectionState(params: {
     }
   }
 
-  if (sessionEntry && sessionStore && sessionKey && sessionEntry.authProfileOverride) {
+  if (
+    sessionEntry &&
+    sessionStore &&
+    sessionKey &&
+    sessionEntry.authProfileOverride &&
+    normalizeProviderId(provider) !== LOCAL_PROVIDER_ID
+  ) {
     const { ensureAuthProfileStore } = await import("../../agents/auth-profiles.js");
     const store = ensureAuthProfileStore(undefined, {
       allowKeychainPrompt: false,
@@ -559,6 +566,11 @@ export function resolveModelDirectiveSelection(params: {
   }
 
   const resolvedKey = modelKey(resolved.ref.provider, resolved.ref.model);
+  if (normalizeProviderId(resolved.ref.provider) !== LOCAL_PROVIDER_ID) {
+    return {
+      error: `Provider "${resolved.ref.provider}" is disabled in local-only mode. Use "${DEFAULT_PROVIDER}".`,
+    };
+  }
   if (allowedModelKeys.size === 0 || allowedModelKeys.has(resolvedKey)) {
     return {
       selection: {

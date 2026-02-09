@@ -103,4 +103,16 @@ describe("models list/status", () => {
     const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
     expect(payload.models[0]?.key).toBe("ollama/gpt-oss-120b");
   });
+
+  it("models list rejects non-ollama provider filter", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "ollama/gpt-oss-120b" } },
+    });
+    const runtime = makeRuntime();
+
+    const { modelsListCommand } = await import("./models/list.js");
+    await expect(modelsListCommand({ provider: "openai" }, runtime)).rejects.toThrow(
+      /disabled in local-only mode/i,
+    );
+  });
 });

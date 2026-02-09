@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildModelsKeyboard,
   buildProviderKeyboard,
-  buildBrowseProvidersButton,
+  buildBrowseModelsButton,
   calculateTotalPages,
   getModelsPageSize,
   parseModelCallbackData,
@@ -228,12 +228,12 @@ describe("buildModelsKeyboard", () => {
   });
 });
 
-describe("buildBrowseProvidersButton", () => {
-  it("returns browse providers button", () => {
-    const result = buildBrowseProvidersButton();
+describe("buildBrowseModelsButton", () => {
+  it("returns browse models button", () => {
+    const result = buildBrowseModelsButton();
     expect(result).toHaveLength(1);
     expect(result[0]).toHaveLength(1);
-    expect(result[0]?.[0]?.text).toBe("Browse providers");
+    expect(result[0]?.[0]?.text).toBe("Browse models");
     expect(result[0]?.[0]?.callback_data).toBe("mdl_prov");
   });
 });

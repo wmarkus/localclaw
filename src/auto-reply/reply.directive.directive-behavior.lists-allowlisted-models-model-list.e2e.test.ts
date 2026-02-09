@@ -115,8 +115,8 @@ describe("directive behavior", () => {
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain("Current: ollama/gpt-oss-120b");
-      expect(text).toContain("Switch: /model <provider/model>");
-      expect(text).toContain("Browse: /models (providers) or /models <provider> (models)");
+      expect(text).toContain("Switch: /model <model>");
+      expect(text).toContain("Browse: /models (all models)");
       expect(text).toContain("More: /model status");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });

@@ -184,10 +184,10 @@ export function buildModelsKeyboard(params: ModelsKeyboardParams): ButtonRow[] {
 }
 
 /**
- * Build "Browse providers" button for /model summary.
+ * Build "Browse models" button for /model summary.
  */
-export function buildBrowseProvidersButton(): ButtonRow[] {
-  return [[{ text: "Browse providers", callback_data: "mdl_prov" }]];
+export function buildBrowseModelsButton(): ButtonRow[] {
+  return [[{ text: "Browse models", callback_data: "mdl_prov" }]];
 }
 
 /**

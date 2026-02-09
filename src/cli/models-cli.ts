@@ -62,25 +62,6 @@ export function registerModelsCli(program: Command) {
     .option("--json", "Output JSON", false)
     .option("--plain", "Plain output", false)
     .option(
-      "--check",
-      "Exit non-zero if auth is expiring/expired (1=expired/missing, 2=expiring)",
-      false,
-    )
-    .option("--probe", "Probe configured provider auth (live)", false)
-    .option("--probe-provider <name>", "Only probe a single provider")
-    .option(
-      "--probe-profile <id>",
-      "Only probe specific auth profile ids (repeat or comma-separated)",
-      (value, previous) => {
-        const next = Array.isArray(previous) ? previous : previous ? [previous] : [];
-        next.push(value);
-        return next;
-      },
-    )
-    .option("--probe-timeout <ms>", "Per-probe timeout in ms")
-    .option("--probe-concurrency <n>", "Concurrent probes")
-    .option("--probe-max-tokens <n>", "Probe max tokens (best-effort)")
-    .option(
       "--agent <id>",
       "Agent id to inspect (overrides OPENCLAW_AGENT_DIR/PI_CODING_AGENT_DIR)",
     )
@@ -92,13 +73,6 @@ export function registerModelsCli(program: Command) {
           {
             json: Boolean(opts.json),
             plain: Boolean(opts.plain),
-            check: Boolean(opts.check),
-            probe: Boolean(opts.probe),
-            probeProvider: opts.probeProvider as string | undefined,
-            probeProfile: opts.probeProfile as string | string[] | undefined,
-            probeTimeout: opts.probeTimeout as string | undefined,
-            probeConcurrency: opts.probeConcurrency as string | undefined,
-            probeMaxTokens: opts.probeMaxTokens as string | undefined,
             agent,
           },
           defaultRuntime,

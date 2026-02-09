@@ -7,7 +7,7 @@ import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "./
 import { lookupContextTokens } from "../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { resolveModelAuthMode } from "../agents/model-auth.js";
-import { resolveConfiguredModelRef } from "../agents/model-selection.js";
+import { normalizeProviderId, resolveConfiguredModelRef } from "../agents/model-selection.js";
 import { resolveSandboxRuntimeStatus } from "../agents/sandbox.js";
 import { derivePromptTokens, normalizeUsage, type UsageLike } from "../agents/usage.js";
 import {
@@ -63,7 +63,6 @@ type StatusArgs = {
   resolvedVerbose?: VerboseLevel;
   resolvedReasoning?: ReasoningLevel;
   resolvedElevated?: ElevatedLevel;
-  modelAuth?: string;
   usageLine?: string;
   timeLine?: string;
   queue?: QueueStatus;
@@ -432,9 +431,10 @@ export function buildStatusMessage(args: StatusArgs): string {
   const activationLine = activationParts.filter(Boolean).join(" · ");
 
   const authMode = resolveModelAuthMode(provider, args.config);
+  const isLocalProvider = normalizeProviderId(provider) === normalizeProviderId(DEFAULT_PROVIDER);
   const authLabelValue =
-    args.modelAuth ?? (authMode && authMode !== "unknown" ? authMode : undefined);
-  const showCost = authLabelValue === "api-key" || authLabelValue === "mixed";
+    !isLocalProvider && authMode && authMode !== "unknown" ? authMode : undefined;
+  const showCost = authMode === "api-key" || authMode === "mixed";
   const costConfig = showCost
     ? resolveModelCostConfig({
         provider,

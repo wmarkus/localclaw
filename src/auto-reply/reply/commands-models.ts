@@ -20,6 +20,7 @@ import {
 
 const PAGE_SIZE_DEFAULT = 20;
 const PAGE_SIZE_MAX = 100;
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
 
 export type ModelsProviderData = {
   byProvider: Map<string, Set<string>>;
@@ -54,6 +55,9 @@ export async function buildModelsProviderData(cfg: OpenClawConfig): Promise<Mode
   const byProvider = new Map<string, Set<string>>();
   const add = (p: string, m: string) => {
     const key = normalizeProviderId(p);
+    if (key !== LOCAL_PROVIDER_ID) {
+      return;
+    }
     const set = byProvider.get(key) ?? new Set<string>();
     set.add(m);
     byProvider.set(key, set);
@@ -193,6 +197,12 @@ export async function resolveModelsCommandReply(params: {
 
   const { byProvider, providers } = await buildModelsProviderData(params.cfg);
   const isTelegram = params.surface === "telegram";
+
+  if (provider && provider !== LOCAL_PROVIDER_ID) {
+    return {
+      text: `Provider "${provider}" is disabled in local-only mode. Use "${DEFAULT_PROVIDER}".`,
+    };
+  }
 
   // Provider list (no provider specified)
   if (!provider) {

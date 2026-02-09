@@ -352,7 +352,7 @@ export async function runPreparedReply(
     storePath,
     isNewSession,
   });
-  const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
+  const authProfileIdSource = authProfileId ? sessionEntry?.authProfileOverrideSource : undefined;
   const followupRun = {
     prompt: queuedBody,
     messageId: sessionCtx.MessageSidFull ?? sessionCtx.MessageSid,

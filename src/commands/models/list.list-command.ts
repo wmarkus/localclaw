@@ -1,13 +1,17 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { ModelRow } from "./list.types.js";
-import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { parseModelRef } from "../../agents/model-selection.js";
 import { loadConfig } from "../../config/config.js";
 import { resolveConfiguredEntries } from "./list.configured.js";
 import { loadModelRegistry, toModelRow } from "./list.registry.js";
 import { printModelTable } from "./list.table.js";
-import { DEFAULT_PROVIDER, ensureFlagCompatibility, modelKey } from "./shared.js";
+import {
+  assertLocalOnlyProvider,
+  DEFAULT_PROVIDER,
+  ensureFlagCompatibility,
+  modelKey,
+} from "./shared.js";
 
 export async function modelsListCommand(
   opts: {
@@ -21,7 +25,6 @@ export async function modelsListCommand(
 ) {
   ensureFlagCompatibility(opts);
   const cfg = loadConfig();
-  const authStore = ensureAuthProfileStore();
   const providerFilter = (() => {
     const raw = opts.provider?.trim();
     if (!raw) {
@@ -30,13 +33,14 @@ export async function modelsListCommand(
     const parsed = parseModelRef(`${raw}/_`, DEFAULT_PROVIDER);
     return parsed?.provider ?? raw.toLowerCase();
   })();
+  if (providerFilter) {
+    assertLocalOnlyProvider(providerFilter);
+  }
 
   let models: Model<Api>[] = [];
-  let availableKeys: Set<string> | undefined;
   try {
     const loaded = await loadModelRegistry(cfg);
     models = loaded.models;
-    availableKeys = loaded.availableKeys;
   } catch (err) {
     runtime.error(`Model registry unavailable: ${String(err)}`);
   }
@@ -88,9 +92,6 @@ export async function modelsListCommand(
           key,
           tags: configured ? Array.from(configured.tags) : [],
           aliases: configured?.aliases ?? [],
-          availableKeys,
-          cfg,
-          authStore,
         }),
       );
     }
@@ -112,9 +113,6 @@ export async function modelsListCommand(
           key: entry.key,
           tags: Array.from(entry.tags),
           aliases: entry.aliases,
-          availableKeys,
-          cfg,
-          authStore,
         }),
       );
     }

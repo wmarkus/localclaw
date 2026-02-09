@@ -15,6 +15,7 @@ import { runWithModelFallback } from "../agents/model-fallback.js";
 import {
   buildAllowedModelSet,
   modelKey,
+  normalizeProviderId,
   resolveConfiguredModelRef,
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
@@ -57,6 +58,8 @@ import { deliverAgentCommandResult } from "./agent/delivery.js";
 import { resolveAgentRunContext } from "./agent/run-context.js";
 import { updateSessionStoreAfterAgentRun } from "./agent/session-store.js";
 import { resolveSession } from "./agent/session.js";
+
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
 
 export async function agentCommand(
   opts: AgentCommandOpts,
@@ -310,7 +313,7 @@ export async function agentCommand(
         model = storedModelOverride;
       }
     }
-    if (sessionEntry) {
+    if (sessionEntry && normalizeProviderId(provider) !== LOCAL_PROVIDER_ID) {
       const authProfileId = sessionEntry.authProfileOverride;
       if (authProfileId) {
         const entry = sessionEntry;
@@ -383,7 +386,10 @@ export async function agentCommand(
         fallbacksOverride: resolveAgentModelFallbacksOverride(cfg, sessionAgentId),
         run: (providerOverride, modelOverride) => {
           const authProfileId =
-            providerOverride === provider ? sessionEntry?.authProfileOverride : undefined;
+            providerOverride === provider &&
+            normalizeProviderId(providerOverride) !== LOCAL_PROVIDER_ID
+              ? sessionEntry?.authProfileOverride
+              : undefined;
           return runEmbeddedPiAgent({
             sessionId,
             sessionKey,

@@ -82,7 +82,7 @@ afterEach(() => {
 });
 
 describe("trigger handling", () => {
-  it("reports active auth profile and key snippet in status", async () => {
+  it("omits auth profile details in status", async () => {
     await withTempHome(async (home) => {
       const cfg = makeCfg(home);
       const agentDir = join(home, ".openclaw", "agents", "main", "agent");
@@ -139,10 +139,8 @@ describe("trigger handling", () => {
         cfg,
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("api-key");
-      expect(text).toMatch(/…|\.{3}/);
-      expect(text).toContain("(ollama:work)");
-      expect(text).not.toContain("mixed");
+      expect(text).not.toContain("api-key");
+      expect(text).not.toContain("ollama:work");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });

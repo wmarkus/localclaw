@@ -5,6 +5,7 @@ import {
   isProfileInCooldown,
   resolveAuthProfileOrder,
 } from "../auth-profiles.js";
+import { DEFAULT_PROVIDER } from "../defaults.js";
 import { normalizeProviderId } from "../model-selection.js";
 
 function isProfileForProvider(params: {
@@ -48,6 +49,9 @@ export async function resolveSessionAuthProfileOverride(params: {
   storePath?: string;
   isNewSession: boolean;
 }): Promise<string | undefined> {
+  if (normalizeProviderId(params.provider) === normalizeProviderId(DEFAULT_PROVIDER)) {
+    return undefined;
+  }
   const {
     cfg,
     provider,

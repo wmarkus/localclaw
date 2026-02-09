@@ -1,13 +1,9 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
-import type { AuthProfileStore } from "../../agents/auth-profiles.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { ModelRow } from "./list.types.js";
 import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
-import { listProfilesForProvider } from "../../agents/auth-profiles.js";
-import { getCustomProviderApiKey, resolveEnvApiKey } from "../../agents/model-auth.js";
 import { ensureOpenClawModelsJson } from "../../agents/models-config.js";
 import { discoverAuthStorage, discoverModels } from "../../agents/pi-model-discovery.js";
-import { modelKey } from "./shared.js";
 
 const isLocalBaseUrl = (baseUrl: string) => {
   try {
@@ -25,28 +21,13 @@ const isLocalBaseUrl = (baseUrl: string) => {
   }
 };
 
-const hasAuthForProvider = (provider: string, cfg: OpenClawConfig, authStore: AuthProfileStore) => {
-  if (listProfilesForProvider(authStore, provider).length > 0) {
-    return true;
-  }
-  if (resolveEnvApiKey(provider)) {
-    return true;
-  }
-  if (getCustomProviderApiKey(cfg, provider)) {
-    return true;
-  }
-  return false;
-};
-
 export async function loadModelRegistry(cfg: OpenClawConfig) {
   await ensureOpenClawModelsJson(cfg);
   const agentDir = resolveOpenClawAgentDir();
   const authStorage = discoverAuthStorage(agentDir);
   const registry = discoverModels(authStorage, agentDir);
   const models = registry.getAll();
-  const availableModels = registry.getAvailable();
-  const availableKeys = new Set(availableModels.map((model) => modelKey(model.provider, model.id)));
-  return { registry, models, availableKeys };
+  return { registry, models };
 }
 
 export function toModelRow(params: {
@@ -54,11 +35,8 @@ export function toModelRow(params: {
   key: string;
   tags: string[];
   aliases?: string[];
-  availableKeys?: Set<string>;
-  cfg?: OpenClawConfig;
-  authStore?: AuthProfileStore;
 }): ModelRow {
-  const { model, key, tags, aliases = [], availableKeys, cfg, authStore } = params;
+  const { model, key, tags, aliases = [] } = params;
   if (!model) {
     return {
       key,
@@ -66,7 +44,6 @@ export function toModelRow(params: {
       input: "-",
       contextWindow: null,
       local: null,
-      available: null,
       tags: [...tags, "missing"],
       missing: true,
     };
@@ -74,10 +51,6 @@ export function toModelRow(params: {
 
   const input = model.input.join("+") || "text";
   const local = isLocalBaseUrl(model.baseUrl);
-  const available =
-    cfg && authStore
-      ? hasAuthForProvider(model.provider, cfg, authStore)
-      : (availableKeys?.has(modelKey(model.provider, model.id)) ?? false);
   const aliasTags = aliases.length > 0 ? [`alias:${aliases.join(",")}`] : [];
   const mergedTags = new Set(tags);
   if (aliasTags.length > 0) {
@@ -97,7 +70,6 @@ export function toModelRow(params: {
     input,
     contextWindow: model.contextWindow ?? null,
     local,
-    available,
     tags: Array.from(mergedTags),
     missing: false,
   };

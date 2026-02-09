@@ -66,14 +66,12 @@ describe("buildStatusMessage", () => {
       resolvedThink: "medium",
       resolvedVerbose: "off",
       queue: { mode: "collect", depth: 0 },
-      modelAuth: "api-key",
       now: 10 * 60_000, // 10 minutes later
     });
     const normalized = normalizeTestText(text);
 
     expect(normalized).toContain("OpenClaw");
     expect(normalized).toContain("Model: ollama/pi:opus");
-    expect(normalized).toContain("api-key");
     expect(normalized).toContain("Tokens: 1.2k in / 800 out");
     expect(normalized).toContain("Cost: $0.0020");
     expect(normalized).toContain("Context: 16k/32k (50%)");
@@ -227,7 +225,6 @@ describe("buildStatusMessage", () => {
       sessionKey: "agent:main:main",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
-      modelAuth: "api-key",
     });
 
     expect(normalizeTestText(text)).toContain("Model: ollama/gpt-oss-120b");
@@ -240,7 +237,6 @@ describe("buildStatusMessage", () => {
       },
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
-      modelAuth: "api-key",
     });
 
     expect(normalizeTestText(text)).toContain("Model: ollama/gpt-oss-120b");
@@ -251,7 +247,6 @@ describe("buildStatusMessage", () => {
       agent: {},
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
-      modelAuth: "api-key",
     });
 
     const normalized = normalizeTestText(text);
@@ -272,7 +267,6 @@ describe("buildStatusMessage", () => {
       sessionKey: "agent:main:whatsapp:group:123@g.us",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
-      modelAuth: "api-key",
     });
 
     expect(text).toContain("Activation: always");
@@ -292,7 +286,6 @@ describe("buildStatusMessage", () => {
         dropPolicy: "old",
         showDetails: true,
       },
-      modelAuth: "api-key",
     });
 
     expect(text).toContain("Queue: collect (depth 3 · debounce 2s · cap 5 · drop old)");
@@ -306,7 +299,6 @@ describe("buildStatusMessage", () => {
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
       usageLine: "📊 Usage: Local 80% left (5h)",
-      modelAuth: "api-key",
     });
 
     const lines = normalizeTestText(text).split("\n");
@@ -320,7 +312,7 @@ describe("buildStatusMessage", () => {
       config: {
         models: {
           providers: {
-            ollama: {
+            remote: {
               models: [
                 {
                   id: "gpt-oss-120b",
@@ -336,12 +328,11 @@ describe("buildStatusMessage", () => {
           },
         },
       } as OpenClawConfig,
-      agent: { model: "ollama/gpt-oss-120b" },
+      agent: { model: "remote/gpt-oss-120b" },
       sessionEntry: { sessionId: "c1", updatedAt: 0, inputTokens: 10 },
       sessionKey: "agent:main:main",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
-      modelAuth: "oauth",
     });
 
     expect(text).not.toContain("💵 Cost:");
@@ -400,7 +391,6 @@ describe("buildStatusMessage", () => {
           sessionScope: "per-sender",
           queue: { mode: "collect", depth: 0 },
           includeTranscriptUsage: true,
-          modelAuth: "api-key",
         });
 
         expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");

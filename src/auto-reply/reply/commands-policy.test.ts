@@ -207,8 +207,8 @@ describe("/models command", () => {
     const params = buildParams("/models not-a-provider", cfg);
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
-    expect(result.reply?.text).toContain("Unknown provider");
-    expect(result.reply?.text).toContain("Available providers");
+    expect(result.reply?.text).toContain("disabled in local-only mode");
+    expect(result.reply?.text).toContain("ollama");
   });
 
   it("lists configured models outside the curated catalog", async () => {
@@ -217,10 +217,10 @@ describe("/models command", () => {
       agents: {
         defaults: {
           model: {
-            primary: "localai/ultra-chat",
+            primary: "ollama/custom-chat",
             fallbacks: ["ollama/gpt-oss-120b"],
           },
-          imageModel: "visionpro/studio-v1",
+          imageModel: "ollama/custom-vision",
         },
       },
     } as unknown as OpenClawConfig;
@@ -229,15 +229,14 @@ describe("/models command", () => {
     const providerList = await handleCommands(
       buildParams("/models", customCfg, { Surface: "discord" }),
     );
-    expect(providerList.reply?.text).toContain("localai");
-    expect(providerList.reply?.text).toContain("visionpro");
+    expect(providerList.reply?.text).toContain("ollama");
 
     const result = await handleCommands(
-      buildParams("/models localai", customCfg, { Surface: "discord" }),
+      buildParams("/models ollama", customCfg, { Surface: "discord" }),
     );
     expect(result.shouldContinue).toBe(false);
-    expect(result.reply?.text).toContain("Models (localai)");
-    expect(result.reply?.text).toContain("localai/ultra-chat");
+    expect(result.reply?.text).toContain("Models (ollama)");
+    expect(result.reply?.text).toContain("ollama/custom-chat");
     expect(result.reply?.text).not.toContain("Unknown provider");
   });
 });

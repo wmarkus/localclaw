@@ -7,14 +7,6 @@ const mocks = vi.hoisted(() => {
     resolveAgentModelPrimary: vi.fn().mockReturnValue(undefined),
     resolveAgentModelFallbacksOverride: vi.fn().mockReturnValue(undefined),
     listAgentIds: vi.fn().mockReturnValue(["main", "helper"]),
-    ensureAuthProfileStore: vi.fn().mockReturnValue({ version: 1, profiles: {} }),
-    listProfilesForProvider: vi.fn().mockReturnValue([]),
-    resolveAuthProfileDisplayLabel: vi.fn(({ profileId }: { profileId: string }) => profileId),
-    resolveAuthStorePathForDisplay: vi
-      .fn()
-      .mockReturnValue("/tmp/openclaw-agent/auth-profiles.json"),
-    resolveEnvApiKey: vi.fn().mockReturnValue(null),
-    getCustomProviderApiKey: vi.fn().mockReturnValue(undefined),
     getShellEnvAppliedKeys: vi.fn().mockReturnValue([]),
     shouldEnableShellEnvFallback: vi.fn().mockReturnValue(false),
     loadConfig: vi.fn().mockReturnValue({
@@ -39,22 +31,6 @@ vi.mock("../../agents/agent-scope.js", () => ({
   resolveAgentModelPrimary: mocks.resolveAgentModelPrimary,
   resolveAgentModelFallbacksOverride: mocks.resolveAgentModelFallbacksOverride,
   listAgentIds: mocks.listAgentIds,
-}));
-
-vi.mock("../../agents/auth-profiles.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../agents/auth-profiles.js")>();
-  return {
-    ...actual,
-    ensureAuthProfileStore: mocks.ensureAuthProfileStore,
-    listProfilesForProvider: mocks.listProfilesForProvider,
-    resolveAuthProfileDisplayLabel: mocks.resolveAuthProfileDisplayLabel,
-    resolveAuthStorePathForDisplay: mocks.resolveAuthStorePathForDisplay,
-  };
-});
-
-vi.mock("../../agents/model-auth.js", () => ({
-  resolveEnvApiKey: mocks.resolveEnvApiKey,
-  getCustomProviderApiKey: mocks.getCustomProviderApiKey,
 }));
 
 vi.mock("../../infra/shell-env.js", () => ({
@@ -85,7 +61,6 @@ describe("modelsStatusCommand", () => {
 
     expect(mocks.resolveOpenClawAgentDir).toHaveBeenCalled();
     expect(payload.defaultModel).toBe("ollama/gpt-oss-120b");
-    expect(payload.auth.storePath).toBe("/tmp/openclaw-agent/auth-profiles.json");
   });
 
   it("uses agent overrides when provided", async () => {

@@ -1,7 +1,6 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import type { ReplyPayload } from "../types.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
-import { resolveAuthStorePathForDisplay } from "../../agents/auth-profiles.js";
 import {
   type ModelAliasIndex,
   modelKey,
@@ -9,15 +8,9 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-import { buildBrowseProvidersButton } from "../../telegram/model-buttons.js";
-import { shortenHomePath } from "../../utils.js";
+import { buildBrowseModelsButton } from "../../telegram/model-buttons.js";
 import { resolveModelsCommandReply } from "./commands-models.js";
-import {
-  formatAuthLabel,
-  type ModelAuthDetailMode,
-  resolveAuthLabel,
-  resolveProfileOverride,
-} from "./directive-handling.auth.js";
+import { resolveProfileOverride } from "./directive-handling.auth.js";
 import {
   type ModelPickerCatalogEntry,
   resolveProviderEndpointLabel,
@@ -218,13 +211,13 @@ export async function maybeHandleModelDirectiveInfo(params: {
     const isTelegram = params.surface === "telegram";
 
     if (isTelegram) {
-      const buttons = buildBrowseProvidersButton();
+      const buttons = buildBrowseModelsButton();
       return {
         text: [
           `Current: ${current}`,
           "",
           "Tap below to browse models, or use:",
-          "/model <provider/model> to switch",
+          "/model <model> to switch",
           "/model status for details",
         ].join("\n"),
         channelData: { telegram: { buttons } },
@@ -235,34 +228,15 @@ export async function maybeHandleModelDirectiveInfo(params: {
       text: [
         `Current: ${current}`,
         "",
-        "Switch: /model <provider/model>",
-        "Browse: /models (providers) or /models <provider> (models)",
+        "Switch: /model <model>",
+        "Browse: /models (all models)",
         "More: /model status",
       ].join("\n"),
     };
   }
 
-  const modelsPath = `${params.agentDir}/models.json`;
-  const formatPath = (value: string) => shortenHomePath(value);
-  const authMode: ModelAuthDetailMode = "verbose";
   if (pickerCatalog.length === 0) {
     return { text: "No models available." };
-  }
-
-  const authByProvider = new Map<string, string>();
-  for (const entry of pickerCatalog) {
-    const provider = normalizeProviderId(entry.provider);
-    if (authByProvider.has(provider)) {
-      continue;
-    }
-    const auth = await resolveAuthLabel(
-      provider,
-      params.cfg,
-      modelsPath,
-      params.agentDir,
-      authMode,
-    );
-    authByProvider.set(provider, formatAuthLabel(auth));
   }
 
   const current = `${params.provider}/${params.model}`;
@@ -271,7 +245,6 @@ export async function maybeHandleModelDirectiveInfo(params: {
     `Current: ${current}`,
     `Default: ${defaultLabel}`,
     `Agent: ${params.activeAgentId}`,
-    `Auth file: ${formatPath(resolveAuthStorePathForDisplay(params.agentDir))}`,
   ];
   if (params.resetModelOverride) {
     lines.push(`(previous selection reset to default)`);
@@ -293,14 +266,13 @@ export async function maybeHandleModelDirectiveInfo(params: {
     if (!models) {
       continue;
     }
-    const authLabel = authByProvider.get(provider) ?? "missing";
     const endpoint = resolveProviderEndpointLabel(provider, params.cfg);
     const endpointSuffix = endpoint.endpoint
       ? ` endpoint: ${endpoint.endpoint}`
       : " endpoint: default";
     const apiSuffix = endpoint.api ? ` api: ${endpoint.api}` : "";
     lines.push("");
-    lines.push(`[${provider}]${endpointSuffix}${apiSuffix} auth: ${authLabel}`);
+    lines.push(`[${provider}]${endpointSuffix}${apiSuffix}`);
     for (const entry of models) {
       const label = `${provider}/${entry.id}`;
       const aliases = params.aliasIndex.byKey.get(label);
@@ -341,8 +313,8 @@ export function resolveModelSelectionFromDirective(params: {
       errorText: [
         "Numeric model selection is not supported in chat.",
         "",
-        "Browse: /models or /models <provider>",
-        "Switch: /model <provider/model>",
+        "Browse: /models",
+        "Switch: /model <model>",
       ].join("\n"),
     };
   }

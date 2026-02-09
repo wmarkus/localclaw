@@ -136,7 +136,7 @@ describe("directive behavior", () => {
       );
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("Auth profile set to ollama:work");
+      expect(text).not.toContain("Auth profile set to");
       const store = loadSessionStore(storePath);
       const entry = store["agent:main:main"];
       expect(entry.authProfileOverride).toBe("ollama:work");

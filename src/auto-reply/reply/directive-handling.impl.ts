@@ -1,4 +1,3 @@
-import type { ModelAliasIndex } from "../../agents/model-selection.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { ExecAsk, ExecHost, ExecSecurity } from "../../infra/exec-approvals.js";
 import type { ReplyPayload } from "../types.js";
@@ -9,6 +8,7 @@ import {
   resolveAgentDir,
   resolveSessionAgentId,
 } from "../../agents/agent-scope.js";
+import { normalizeProviderId, type ModelAliasIndex } from "../../agents/model-selection.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
@@ -478,7 +478,10 @@ export async function handleDirectiveOnly(params: {
         ? `Model reset to default (${labelWithAlias}).`
         : `Model set to ${labelWithAlias}.`,
     );
-    if (profileOverride) {
+    if (
+      profileOverride &&
+      normalizeProviderId(modelSelection.provider) !== normalizeProviderId(params.defaultProvider)
+    ) {
       parts.push(`Auth profile set to ${profileOverride}.`);
     }
   }

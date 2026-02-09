@@ -3,6 +3,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import {
   buildModelAliasIndex,
   modelKey,
+  normalizeProviderId,
   parseModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
@@ -43,6 +44,17 @@ export const formatMs = (value?: number | null) => {
   return `${Math.round(value / 100) / 10}s`;
 };
 
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
+
+export function assertLocalOnlyProvider(provider: string): void {
+  const normalized = normalizeProviderId(provider);
+  if (normalized !== LOCAL_PROVIDER_ID) {
+    throw new Error(
+      `Provider "${provider}" is disabled in local-only mode. Use "${DEFAULT_PROVIDER}".`,
+    );
+  }
+}
+
 export async function updateConfig(
   mutator: (cfg: OpenClawConfig) => OpenClawConfig,
 ): Promise<OpenClawConfig> {
@@ -72,6 +84,7 @@ export function resolveModelTarget(params: { raw: string; cfg: OpenClawConfig })
   if (!resolved) {
     throw new Error(`Invalid model reference: ${params.raw}`);
   }
+  assertLocalOnlyProvider(resolved.ref.provider);
   return resolved.ref;
 }
 

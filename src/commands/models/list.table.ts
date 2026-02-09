@@ -8,7 +8,6 @@ const MODEL_PAD = 42;
 const INPUT_PAD = 10;
 const CTX_PAD = 8;
 const LOCAL_PAD = 5;
-const AUTH_PAD = 5;
 
 export function printModelTable(
   rows: ModelRow[],
@@ -42,7 +41,6 @@ export function printModelTable(
     pad("Input", INPUT_PAD),
     pad("Ctx", CTX_PAD),
     pad("Local", LOCAL_PAD),
-    pad("Auth", AUTH_PAD),
     "Tags",
   ].join(" ");
   runtime.log(rich ? theme.heading(header) : header);
@@ -53,8 +51,6 @@ export function printModelTable(
     const ctxLabel = pad(formatTokenK(row.contextWindow), CTX_PAD);
     const localText = row.local === null ? "-" : row.local ? "yes" : "no";
     const localLabel = pad(localText, LOCAL_PAD);
-    const authText = row.available === null ? "-" : row.available ? "yes" : "no";
-    const authLabel = pad(authText, AUTH_PAD);
     const tagsLabel =
       row.tags.length > 0
         ? rich
@@ -72,18 +68,12 @@ export function printModelTable(
       row.local === null ? theme.muted : row.local ? theme.success : theme.muted,
       localLabel,
     );
-    const coloredAuth = colorize(
-      rich,
-      row.available === null ? theme.muted : row.available ? theme.success : theme.error,
-      authLabel,
-    );
 
     const line = [
       rich ? theme.accent(keyLabel) : keyLabel,
       coloredInput,
       ctxLabel,
       coloredLocal,
-      coloredAuth,
       tagsLabel,
     ].join(" ");
     runtime.log(line);

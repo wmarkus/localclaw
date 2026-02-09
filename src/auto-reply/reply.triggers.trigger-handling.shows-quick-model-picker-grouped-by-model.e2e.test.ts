@@ -103,8 +103,8 @@ describe("trigger handling", () => {
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       const normalized = normalizeTestText(text ?? "");
       expect(normalized).toContain("Current: ollama/gpt-oss-120b");
-      expect(normalized).toContain("Switch: /model <provider/model>");
-      expect(normalized).toContain("Browse: /models (providers) or /models <provider> (models)");
+      expect(normalized).toContain("Switch: /model <model>");
+      expect(normalized).toContain("Browse: /models (all models)");
       expect(normalized).toContain("More: /model status");
       expect(normalized).not.toContain("reasoning");
       expect(normalized).not.toContain("image");
@@ -186,15 +186,15 @@ describe("trigger handling", () => {
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       const normalized = normalizeTestText(text ?? "");
       expect(normalized).toContain("Numeric model selection is not supported in chat.");
-      expect(normalized).toContain("Browse: /models or /models <provider>");
-      expect(normalized).toContain("Switch: /model <provider/model>");
+      expect(normalized).toContain("Browse: /models");
+      expect(normalized).toContain("Switch: /model <model>");
 
       const store = loadSessionStore(cfg.session.store);
       expect(store[sessionKey]?.providerOverride).toBeUndefined();
       expect(store[sessionKey]?.modelOverride).toBeUndefined();
     });
   });
-  it("resets to the default model via /model <provider/model>", async () => {
+  it("resets to the default model via /model <model>", async () => {
     await withTempHome(async (home) => {
       const cfg = makeCfg(home);
       const sessionKey = "telegram:slash:111";
@@ -225,7 +225,7 @@ describe("trigger handling", () => {
       expect(store[sessionKey]?.modelOverride).toBeUndefined();
     });
   });
-  it("selects a model via /model <provider/model>", async () => {
+  it("selects a model via /model <model>", async () => {
     await withTempHome(async (home) => {
       const cfg = makeCfg(home);
       const sessionKey = "telegram:slash:111";

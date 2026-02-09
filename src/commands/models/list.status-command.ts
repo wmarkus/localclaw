@@ -2,10 +2,6 @@ import type { RuntimeEnv } from "../../runtime.js";
 import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
 import { resolveAgentDir, resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
 import {
-  ensureAuthProfileStore,
-  resolveAuthStorePathForDisplay,
-} from "../../agents/auth-profiles.js";
-import {
   resolveConfiguredModelRef,
   resolveDefaultModelForAgent,
 } from "../../agents/model-selection.js";
@@ -21,13 +17,6 @@ export async function modelsStatusCommand(
   opts: {
     json?: boolean;
     plain?: boolean;
-    check?: boolean;
-    probe?: boolean;
-    probeProvider?: string;
-    probeProfile?: string | string[];
-    probeTimeout?: string;
-    probeConcurrency?: string;
-    probeMaxTokens?: string;
     agent?: string;
   },
   runtime: RuntimeEnv,
@@ -67,12 +56,6 @@ export async function modelsStatusCommand(
     typeof imageConfig === "string" ? imageConfig.trim() : (imageConfig?.primary?.trim() ?? "");
   const imageFallbacks = typeof imageConfig === "object" ? (imageConfig?.fallbacks ?? []) : [];
 
-  const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
-  const auth = {
-    storePath: resolveAuthStorePathForDisplay(agentDir),
-    count: Object.keys(authStore.profiles ?? {}).length,
-  };
-
   const payload = {
     agentId: agentId ?? undefined,
     agentDir,
@@ -82,7 +65,6 @@ export async function modelsStatusCommand(
     imageModel: imageModel || null,
     imageFallbacks,
     providers: Object.keys(cfg.models?.providers ?? {}),
-    auth,
   };
 
   if (opts.json) {

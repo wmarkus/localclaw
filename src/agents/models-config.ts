@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { type OpenClawConfig, loadConfig } from "../config/config.js";
 import { resolveOpenClawAgentDir } from "./agent-paths.js";
+import { DEFAULT_PROVIDER } from "./defaults.js";
 import {
   normalizeProviders,
   type ProviderConfig,
@@ -11,6 +12,7 @@ import {
 type ModelsConfig = NonNullable<OpenClawConfig["models"]>;
 
 const DEFAULT_MODE: NonNullable<ModelsConfig["mode"]> = "merge";
+const LOCAL_PROVIDER_ID = DEFAULT_PROVIDER;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -108,7 +110,12 @@ export async function ensureOpenClawModelsJson(
         string,
         NonNullable<ModelsConfig["providers"]>[string]
       >;
-      mergedProviders = { ...existingProviders, ...providers };
+      const filteredProviders = Object.fromEntries(
+        Object.entries(existingProviders).filter(
+          ([key]) => key.trim().toLowerCase() === LOCAL_PROVIDER_ID,
+        ),
+      );
+      mergedProviders = { ...filteredProviders, ...providers };
     }
   }
 

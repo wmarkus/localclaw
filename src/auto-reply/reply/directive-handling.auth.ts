@@ -4,6 +4,7 @@ import {
   resolveAuthProfileDisplayLabel,
   resolveAuthStorePathForDisplay,
 } from "../../agents/auth-profiles.js";
+import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import {
   ensureAuthProfileStore,
   getCustomProviderApiKey,
@@ -227,6 +228,9 @@ export const resolveProfileOverride = (params: {
   const raw = params.rawProfile?.trim();
   if (!raw) {
     return {};
+  }
+  if (normalizeProviderId(params.provider) === normalizeProviderId(DEFAULT_PROVIDER)) {
+    return { profileId: raw };
   }
   const store = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,

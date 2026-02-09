@@ -1,6 +1,8 @@
 import path from "node:path";
 import type { OpenClawConfig, ConfigValidationIssue } from "./types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { DEFAULT_PROVIDER } from "../agents/defaults.js";
+import { normalizeProviderId, parseModelRef } from "../agents/model-selection.js";
 import { CHANNEL_IDS, normalizeChatChannelId } from "../channels/registry.js";
 import {
   normalizePluginsConfig,
@@ -121,6 +123,10 @@ export function validateConfigObject(
   if (avatarIssues.length > 0) {
     return { ok: false, issues: avatarIssues };
   }
+  const localOnlyIssues = validateLocalOnlyModels(validated.data as OpenClawConfig);
+  if (localOnlyIssues.length > 0) {
+    return { ok: false, issues: localOnlyIssues };
+  }
   return {
     ok: true,
     config: applyModelDefaults(
@@ -131,6 +137,149 @@ export function validateConfigObject(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
+
+function validateLocalOnlyModels(config: OpenClawConfig): ConfigValidationIssue[] {
+  const issues: ConfigValidationIssue[] = [];
+  const errorForProvider = (provider: string) =>
+    `Provider "${provider}" is disabled in local-only mode. Use "${DEFAULT_PROVIDER}".`;
+
+  const validateProviderKey = (provider: string, path: string) => {
+    if (!provider.trim()) {
+      return;
+    }
+    if (normalizeProviderId(provider) !== LOCAL_PROVIDER_ID) {
+      issues.push({ path, message: errorForProvider(provider) });
+    }
+  };
+
+  const validateModelRef = (raw: unknown, path: string) => {
+    if (typeof raw !== "string") {
+      return;
+    }
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return;
+    }
+    const parsed = parseModelRef(trimmed, DEFAULT_PROVIDER);
+    if (!parsed) {
+      return;
+    }
+    if (normalizeProviderId(parsed.provider) !== LOCAL_PROVIDER_ID) {
+      issues.push({ path, message: errorForProvider(parsed.provider) });
+    }
+  };
+
+  const validateModelList = (raw: unknown, pathBase: string) => {
+    if (typeof raw === "string") {
+      validateModelRef(raw, pathBase);
+      return;
+    }
+    if (!raw || typeof raw !== "object") {
+      return;
+    }
+    const entry = raw as { primary?: unknown; fallbacks?: unknown };
+    if (entry.primary !== undefined) {
+      validateModelRef(entry.primary, `${pathBase}.primary`);
+    }
+    if (Array.isArray(entry.fallbacks)) {
+      entry.fallbacks.forEach((fallback, index) =>
+        validateModelRef(fallback, `${pathBase}.fallbacks.${index}`),
+      );
+    }
+  };
+
+  const providers = config.models?.providers;
+  if (providers && typeof providers === "object") {
+    for (const key of Object.keys(providers)) {
+      validateProviderKey(key, `models.providers.${key}`);
+    }
+  }
+
+  const authProfiles = config.auth?.profiles;
+  if (authProfiles && typeof authProfiles === "object") {
+    for (const [profileId, profile] of Object.entries(authProfiles)) {
+      const provider =
+        profile && typeof profile === "object"
+          ? String((profile as { provider?: unknown }).provider ?? "")
+          : "";
+      if (provider.trim()) {
+        validateProviderKey(provider, `auth.profiles.${profileId}.provider`);
+      }
+    }
+  }
+  const authOrder = config.auth?.order;
+  if (authOrder && typeof authOrder === "object") {
+    for (const key of Object.keys(authOrder)) {
+      validateProviderKey(key, `auth.order.${key}`);
+    }
+  }
+  const authCooldowns = config.auth?.cooldowns?.billingBackoffHoursByProvider;
+  if (authCooldowns && typeof authCooldowns === "object") {
+    for (const key of Object.keys(authCooldowns)) {
+      validateProviderKey(key, `auth.cooldowns.billingBackoffHoursByProvider.${key}`);
+    }
+  }
+
+  const defaults = config.agents?.defaults;
+  if (defaults) {
+    validateModelList(defaults.model, "agents.defaults.model");
+    validateModelList(defaults.imageModel, "agents.defaults.imageModel");
+    if (defaults.models && typeof defaults.models === "object") {
+      for (const key of Object.keys(defaults.models)) {
+        validateModelRef(key, `agents.defaults.models.${key}`);
+      }
+    }
+    if (defaults.heartbeat?.model) {
+      validateModelRef(defaults.heartbeat.model, "agents.defaults.heartbeat.model");
+    }
+    if (defaults.subagents?.model) {
+      validateModelList(defaults.subagents.model, "agents.defaults.subagents.model");
+    }
+  }
+
+  const agentList = config.agents?.list;
+  if (Array.isArray(agentList)) {
+    agentList.forEach((agent, index) => {
+      if (!agent || typeof agent !== "object") {
+        return;
+      }
+      const base = `agents.list.${index}`;
+      validateModelList(agent.model, `${base}.model`);
+      validateModelList((agent as { imageModel?: unknown }).imageModel, `${base}.imageModel`);
+      if ((agent as { models?: Record<string, unknown> }).models) {
+        for (const key of Object.keys((agent as { models: Record<string, unknown> }).models)) {
+          validateModelRef(key, `${base}.models.${key}`);
+        }
+      }
+      if (agent.heartbeat?.model) {
+        validateModelRef(agent.heartbeat.model, `${base}.heartbeat.model`);
+      }
+      if (agent.subagents?.model) {
+        validateModelList(agent.subagents.model, `${base}.subagents.model`);
+      }
+    });
+  }
+
+  const hooks = config.hooks;
+  if (hooks?.mappings && Array.isArray(hooks.mappings)) {
+    hooks.mappings.forEach((entry, index) => {
+      if (entry?.model) {
+        validateModelRef(entry.model, `hooks.mappings.${index}.model`);
+      }
+    });
+  }
+  if (hooks?.gmail?.model) {
+    validateModelRef(hooks.gmail.model, "hooks.gmail.model");
+  }
+
+  if (config.messages?.tts?.summaryModel) {
+    validateModelRef(config.messages.tts.summaryModel, "messages.tts.summaryModel");
+  }
+
+  return issues;
 }
 
 export function validateConfigObjectWithPlugins(raw: unknown):

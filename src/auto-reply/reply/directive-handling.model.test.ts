@@ -60,7 +60,7 @@ describe("/model chat UX", () => {
 
     expect(reply?.text).toContain("Current:");
     expect(reply?.text).toContain("Browse: /models");
-    expect(reply?.text).toContain("Switch: /model <provider/model>");
+    expect(reply?.text).toContain("Switch: /model <model>");
   });
 
   it("auto-applies closest match for typos", () => {
@@ -85,6 +85,26 @@ describe("/model chat UX", () => {
       isDefault: true,
     });
     expect(resolved.errorText).toBeUndefined();
+  });
+
+  it("rejects non-ollama providers", () => {
+    const directives = parseInlineDirectives("/model openai/gpt-4");
+    const cfg = { commands: { text: true } } as unknown as OpenClawConfig;
+
+    const resolved = resolveModelSelectionFromDirective({
+      directives,
+      cfg,
+      agentDir: "/tmp/agent",
+      defaultProvider: "ollama",
+      defaultModel: "gpt-oss-120b",
+      aliasIndex: baseAliasIndex(),
+      allowedModelKeys: new Set(["ollama/gpt-oss-120b"]),
+      allowedModelCatalog: [{ provider: "ollama", id: "gpt-oss-120b" }],
+      provider: "ollama",
+    });
+
+    expect(resolved.errorText).toContain("disabled in local-only mode");
+    expect(resolved.errorText).toContain("ollama");
   });
 });
 
