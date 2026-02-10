@@ -7,6 +7,12 @@ const mocks = vi.hoisted(() => {
     resolveAgentModelPrimary: vi.fn().mockReturnValue(undefined),
     resolveAgentModelFallbacksOverride: vi.fn().mockReturnValue(undefined),
     listAgentIds: vi.fn().mockReturnValue(["main", "helper"]),
+    resolveConfiguredModelRef: vi
+      .fn()
+      .mockReturnValue({ provider: "ollama", model: "gpt-oss-120b" }),
+    resolveDefaultModelForAgent: vi
+      .fn()
+      .mockReturnValue({ provider: "ollama", model: "gpt-oss-120b" }),
     getShellEnvAppliedKeys: vi.fn().mockReturnValue([]),
     shouldEnableShellEnvFallback: vi.fn().mockReturnValue(false),
     loadConfig: vi.fn().mockReturnValue({
@@ -46,7 +52,16 @@ vi.mock("../../config/config.js", async (importOriginal) => {
   };
 });
 
-import { modelsStatusCommand } from "./list.js";
+vi.mock("../../agents/model-selection.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../agents/model-selection.js")>();
+  return {
+    ...actual,
+    resolveConfiguredModelRef: mocks.resolveConfiguredModelRef,
+    resolveDefaultModelForAgent: mocks.resolveDefaultModelForAgent,
+  };
+});
+
+import { modelsStatusCommand } from "./list.status-command.js";
 
 const runtime = {
   log: vi.fn(),
@@ -72,10 +87,15 @@ describe("modelsStatusCommand", () => {
     const originalPrimary = mocks.resolveAgentModelPrimary.getMockImplementation();
     const originalFallbacks = mocks.resolveAgentModelFallbacksOverride.getMockImplementation();
     const originalAgentDir = mocks.resolveAgentDir.getMockImplementation();
+    const originalDefaultModel = mocks.resolveDefaultModelForAgent.getMockImplementation();
 
     mocks.resolveAgentModelPrimary.mockReturnValue("ollama/gpt-oss-20b");
     mocks.resolveAgentModelFallbacksOverride.mockReturnValue(["ollama/gpt-oss-7b"]);
     mocks.resolveAgentDir.mockReturnValue("/tmp/openclaw-agent-custom");
+    mocks.resolveDefaultModelForAgent.mockReturnValue({
+      provider: "ollama",
+      model: "gpt-oss-20b",
+    });
 
     try {
       await modelsStatusCommand({ json: true, agent: "helper" }, localRuntime as never);
@@ -88,6 +108,7 @@ describe("modelsStatusCommand", () => {
       mocks.resolveAgentModelPrimary.mockImplementation(originalPrimary);
       mocks.resolveAgentModelFallbacksOverride.mockImplementation(originalFallbacks);
       mocks.resolveAgentDir.mockImplementation(originalAgentDir);
+      mocks.resolveDefaultModelForAgent.mockImplementation(originalDefaultModel);
     }
   });
 });

@@ -6,8 +6,9 @@ import type { FollowupRun } from "./queue.js";
 import type { TypingController } from "./typing.js";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
 import { lookupContextTokens } from "../../agents/context.js";
-import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
+import { DEFAULT_CONTEXT_TOKENS, DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
+import { normalizeProviderId } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import { resolveAgentIdFromSessionKey, type SessionEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
@@ -25,6 +26,8 @@ import { isRoutableChannel, routeReply } from "./route-reply.js";
 import { incrementCompactionCount } from "./session-updates.js";
 import { persistSessionUsageUpdate } from "./session-usage.js";
 import { createTypingSignaler } from "./typing-mode.js";
+
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
 
 export function createFollowupRunner(params: {
   opts?: GetReplyOptions;
@@ -136,7 +139,10 @@ export function createFollowupRunner(params: {
           ),
           run: (provider, model) => {
             const authProfileId =
-              provider === queued.run.provider ? queued.run.authProfileId : undefined;
+              provider === queued.run.provider &&
+              normalizeProviderId(provider) !== LOCAL_PROVIDER_ID
+                ? queued.run.authProfileId
+                : undefined;
             return runEmbeddedPiAgent({
               sessionId: queued.run.sessionId,
               sessionKey: queued.run.sessionKey,

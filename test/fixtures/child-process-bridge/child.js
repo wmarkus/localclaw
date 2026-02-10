@@ -5,6 +5,14 @@ const server = http.createServer((_, res) => {
   res.end("ok");
 });
 
+server.on("error", (err) => {
+  if (err && typeof err === "object" && "code" in err && err.code === "EPERM") {
+    process.stdout.write("EPERM\n");
+    process.exit(0);
+  }
+  throw err;
+});
+
 server.listen(0, "127.0.0.1", () => {
   const addr = server.address();
   if (!addr || typeof addr === "string") {

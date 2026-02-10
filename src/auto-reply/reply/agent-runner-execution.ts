@@ -6,7 +6,9 @@ import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import type { FollowupRun } from "./queue.js";
 import type { TypingSignaler } from "./typing-mode.js";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
+import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
+import { normalizeProviderId } from "../../agents/model-selection.js";
 import {
   isCompactionFailureError,
   isContextOverflowError,
@@ -34,6 +36,8 @@ import { buildThreadingToolContext, resolveEnforceFinalTag } from "./agent-runne
 import { createBlockReplyPayloadKey, type BlockReplyPipeline } from "./block-reply-pipeline.js";
 import { parseReplyDirectives } from "./reply-directives.js";
 import { applyReplyTagsToPayload, isRenderablePayload } from "./reply-payloads.js";
+
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
 
 export type AgentRunLoopResult =
   | {
@@ -159,7 +163,8 @@ export async function runAgentTurnWithFallback(params: {
           });
 
           const authProfileId =
-            provider === params.followupRun.run.provider
+            provider === params.followupRun.run.provider &&
+            normalizeProviderId(provider) !== LOCAL_PROVIDER_ID
               ? params.followupRun.run.authProfileId
               : undefined;
           return runEmbeddedPiAgent({

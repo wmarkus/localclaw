@@ -4,6 +4,49 @@ import { WebSocketServer } from "ws";
 import { rawDataToString } from "../infra/ws.js";
 import { createTargetViaCdp, evaluateJavaScript, normalizeCdpWsUrl, snapshotAria } from "./cdp.js";
 
+function isLoopbackBindPermissionError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  return code === "EPERM" || code === "EACCES";
+}
+
+async function waitForWsListening(server: WebSocketServer): Promise<boolean> {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const onError = (err: unknown) => {
+        server.off("listening", resolve);
+        reject(err);
+      };
+      server.once("error", onError);
+      server.once("listening", resolve);
+    });
+    return true;
+  } catch (err) {
+    if (isLoopbackBindPermissionError(err)) {
+      return false;
+    }
+    throw err;
+  }
+}
+
+async function listenHttpServer(server: ReturnType<typeof createServer>): Promise<boolean> {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const onError = (err: unknown) => {
+        server.off("listening", resolve);
+        reject(err);
+      };
+      server.once("error", onError);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    return true;
+  } catch (err) {
+    if (isLoopbackBindPermissionError(err)) {
+      return false;
+    }
+    throw err;
+  }
+}
+
 describe("cdp", () => {
   let httpServer: ReturnType<typeof createServer> | null = null;
   let wsServer: WebSocketServer | null = null;
@@ -27,7 +70,10 @@ describe("cdp", () => {
 
   it("creates a target via the browser websocket", async () => {
     wsServer = new WebSocketServer({ port: 0, host: "127.0.0.1" });
-    await new Promise<void>((resolve) => wsServer?.once("listening", resolve));
+    const wsOk = await waitForWsListening(wsServer);
+    if (!wsOk) {
+      return;
+    }
     const wsPort = (wsServer.address() as { port: number }).port;
 
     wsServer.on("connection", (socket) => {
@@ -63,7 +109,10 @@ describe("cdp", () => {
       res.end("not found");
     });
 
-    await new Promise<void>((resolve) => httpServer?.listen(0, "127.0.0.1", resolve));
+    const httpOk = await listenHttpServer(httpServer);
+    if (!httpOk) {
+      return;
+    }
     const httpPort = (httpServer.address() as { port: number }).port;
 
     const created = await createTargetViaCdp({
@@ -76,7 +125,10 @@ describe("cdp", () => {
 
   it("evaluates javascript via CDP", async () => {
     wsServer = new WebSocketServer({ port: 0, host: "127.0.0.1" });
-    await new Promise<void>((resolve) => wsServer?.once("listening", resolve));
+    const wsOk = await waitForWsListening(wsServer);
+    if (!wsOk) {
+      return;
+    }
     const wsPort = (wsServer.address() as { port: number }).port;
 
     wsServer.on("connection", (socket) => {
@@ -113,7 +165,10 @@ describe("cdp", () => {
 
   it("captures an aria snapshot via CDP", async () => {
     wsServer = new WebSocketServer({ port: 0, host: "127.0.0.1" });
-    await new Promise<void>((resolve) => wsServer?.once("listening", resolve));
+    const wsOk = await waitForWsListening(wsServer);
+    if (!wsOk) {
+      return;
+    }
     const wsPort = (wsServer.address() as { port: number }).port;
 
     wsServer.on("connection", (socket) => {

@@ -1,29 +1,12 @@
-import type { AddressInfo } from "node:net";
-import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
+import { getLoopbackFreePort } from "../test-utils/ports.js";
 import {
   ensureChromeExtensionRelayServer,
   getChromeExtensionRelayAuthHeaders,
   stopChromeExtensionRelayServer,
 } from "./extension-relay.js";
 import { canListenOnLoopback } from "./test-helpers.js";
-
-async function getFreePort(): Promise<number> {
-  while (true) {
-    const port = await new Promise<number>((resolve, reject) => {
-      const s = createServer();
-      s.once("error", reject);
-      s.listen(0, "127.0.0.1", () => {
-        const assigned = (s.address() as AddressInfo).port;
-        s.close((err) => (err ? reject(err) : resolve(assigned)));
-      });
-    });
-    if (port < 65535) {
-      return port;
-    }
-  }
-}
 
 function waitForOpen(ws: WebSocket) {
   return new Promise<void>((resolve, reject) => {
@@ -148,7 +131,7 @@ describeLoopback("chrome extension relay server", () => {
   });
 
   it("advertises CDP WS only when extension is connected", async () => {
-    const port = await getFreePort();
+    const port = await getLoopbackFreePort();
     cdpUrl = `http://127.0.0.1:${port}`;
     await ensureChromeExtensionRelayServer({ cdpUrl });
 
@@ -173,7 +156,7 @@ describeLoopback("chrome extension relay server", () => {
   });
 
   it("rejects CDP access without relay auth token", async () => {
-    const port = await getFreePort();
+    const port = await getLoopbackFreePort();
     cdpUrl = `http://127.0.0.1:${port}`;
     await ensureChromeExtensionRelayServer({ cdpUrl });
 
@@ -186,7 +169,7 @@ describeLoopback("chrome extension relay server", () => {
   });
 
   it("tracks attached page targets and exposes them via CDP + /json/list", async () => {
-    const port = await getFreePort();
+    const port = await getLoopbackFreePort();
     cdpUrl = `http://127.0.0.1:${port}`;
     await ensureChromeExtensionRelayServer({ cdpUrl });
 
@@ -302,7 +285,7 @@ describeLoopback("chrome extension relay server", () => {
   }, 15_000);
 
   it("rebroadcasts attach when a session id is reused for a new target", async () => {
-    const port = await getFreePort();
+    const port = await getLoopbackFreePort();
     cdpUrl = `http://127.0.0.1:${port}`;
     await ensureChromeExtensionRelayServer({ cdpUrl });
 

@@ -429,6 +429,6 @@ describe("handleCommands /tts", () => {
     const params = buildParams("/tts", cfg);
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
-    expect(result.reply?.text).toContain("TTS status");
+    expect(result.reply?.text).toContain("TTS is disabled in the local-only build.");
   });
 });

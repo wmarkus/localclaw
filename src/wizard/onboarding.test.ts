@@ -325,7 +325,7 @@ describe("runOnboardingWizard", () => {
 
       const calls = (note as unknown as { mock: { calls: unknown[][] } }).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      expect(calls.some((call) => call?.[1] === "Web search (optional)")).toBe(true);
+      expect(calls.some((call) => call?.[1] === "Web search")).toBe(true);
     } finally {
       if (prevBraveKey === undefined) {
         delete process.env.BRAVE_API_KEY;

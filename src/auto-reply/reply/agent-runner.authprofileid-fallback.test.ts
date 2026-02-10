@@ -11,7 +11,7 @@ vi.mock("../../agents/model-fallback.js", () => ({
   }: {
     run: (provider: string, model: string) => Promise<unknown>;
   }) => ({
-    // Force a cross-provider fallback candidate
+    // Keep provider stable for local-only runs
     result: await run("ollama", "gpt-oss-120b"),
     provider: "ollama",
     model: "gpt-oss-120b",
@@ -89,7 +89,7 @@ function createBaseRun(params: { runOverrides?: Partial<FollowupRun["run"]> }) {
 }
 
 describe("authProfileId fallback scoping", () => {
-  it("drops authProfileId when provider changes during fallback", async () => {
+  it("drops authProfileId for local providers", async () => {
     runEmbeddedPiAgentMock.mockReset();
     runEmbeddedPiAgentMock.mockResolvedValue({ payloads: [{ text: "ok" }], meta: {} });
 

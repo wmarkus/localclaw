@@ -69,9 +69,11 @@ export function resolveMemoryFlushContextWindowTokens(params: {
   modelId?: string;
   agentCfgContextTokens?: number;
 }): number {
-  return (
-    lookupContextTokens(params.modelId) ?? params.agentCfgContextTokens ?? DEFAULT_CONTEXT_TOKENS
-  );
+  const agentContextTokens = normalizeNonNegativeInt(params.agentCfgContextTokens);
+  if (agentContextTokens && agentContextTokens > 0) {
+    return agentContextTokens;
+  }
+  return lookupContextTokens(params.modelId) ?? DEFAULT_CONTEXT_TOKENS;
 }
 
 export function shouldRunMemoryFlush(params: {

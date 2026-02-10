@@ -37,7 +37,9 @@ function isAlive(pid: number): boolean {
 function releaseAllLocksSync(): void {
   for (const [sessionFile, held] of HELD_LOCKS) {
     try {
-      if (typeof held.handle.close === "function") {
+      if (typeof (held.handle as { fd?: unknown }).fd === "number") {
+        fsSync.closeSync((held.handle as { fd: number }).fd);
+      } else if (typeof held.handle.close === "function") {
         void held.handle.close().catch(() => {});
       }
     } catch {
@@ -56,6 +58,9 @@ let cleanupRegistered = false;
 
 function handleTerminationSignal(signal: CleanupSignal): void {
   releaseAllLocksSync();
+  if (process.env.VITEST) {
+    return;
+  }
   const shouldReraise = process.listenerCount(signal) === 1;
   if (shouldReraise) {
     const handler = cleanupHandlers.get(signal);

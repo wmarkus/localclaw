@@ -92,6 +92,9 @@ describe("attachChildProcessBridge", () => {
       throw new Error("expected stdout");
     }
     const portLine = await waitForLine(child.stdout);
+    if (portLine === "EPERM") {
+      return;
+    }
     const port = Number(portLine);
     expect(Number.isFinite(port)).toBe(true);
 

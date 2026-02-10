@@ -1,0 +1,51 @@
+{
+  "id": "voice-call",
+  "name": "Voice Call",
+  "description": "Outbound voice call plugin",
+  "skills": ["voice-call"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "provider": {
+        "type": "string",
+        "enum": ["mock", "twilio", "telnyx", "plivo"],
+        "description": "Voice call provider"
+      },
+      "fromNumber": { "type": "string" },
+      "toNumber": { "type": "string" },
+      "outbound": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "defaultMode": {
+            "type": "string",
+            "enum": ["notify", "conversation"]
+          }
+        }
+      },
+      "inboundPolicy": {
+        "type": "string",
+        "enum": ["disabled", "allowlist"]
+      },
+      "allowFrom": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "inboundGreeting": { "type": "string" },
+      "responseModel": { "type": "string" },
+      "responseSystemPrompt": { "type": "string" },
+      "responseTimeoutMs": { "type": "number" },
+      "skipSignatureVerification": { "type": "boolean" },
+      "serve": { "type": "object", "additionalProperties": true },
+      "publicUrl": { "type": "string" },
+      "tunnel": { "type": "object", "additionalProperties": true },
+      "tailscale": { "type": "object", "additionalProperties": true },
+      "streaming": { "type": "object", "additionalProperties": true },
+      "tts": { "type": "object", "additionalProperties": true },
+      "twilio": { "type": "object", "additionalProperties": true },
+      "telnyx": { "type": "object", "additionalProperties": true },
+      "plivo": { "type": "object", "additionalProperties": true }
+    }
+  }
+}

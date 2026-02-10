@@ -1,6 +1,7 @@
 import net from "node:net";
 import { describe, expect, it, vi } from "vitest";
 import { CHUTES_TOKEN_ENDPOINT, CHUTES_USERINFO_ENDPOINT } from "../agents/chutes-oauth.js";
+import { canBindToHost } from "../gateway/net.js";
 import { loginChutes } from "./chutes-oauth.js";
 
 async function getFreePort(): Promise<number> {
@@ -21,6 +22,9 @@ async function getFreePort(): Promise<number> {
 
 describe("loginChutes", () => {
   it("captures local redirect and exchanges code for tokens", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const port = await getFreePort();
     const redirectUri = `http://127.0.0.1:${port}/oauth-callback`;
 

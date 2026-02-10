@@ -316,9 +316,15 @@ export const sendHandlers: GatewayRequestHandlers = {
         respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, String(resolved.error)));
         return;
       }
-      const normalized = outbound.pollMaxOptions
-        ? normalizePollInput(poll, { maxOptions: outbound.pollMaxOptions })
-        : normalizePollInput(poll);
+      let normalized: ReturnType<typeof normalizePollInput>;
+      try {
+        normalized = outbound.pollMaxOptions
+          ? normalizePollInput(poll, { maxOptions: outbound.pollMaxOptions })
+          : normalizePollInput(poll);
+      } catch (err) {
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, String(err)));
+        return;
+      }
       const result = await outbound.sendPoll({
         cfg,
         to: resolved.to,

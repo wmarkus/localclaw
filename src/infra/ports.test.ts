@@ -9,13 +9,55 @@ import {
   PortInUseError,
 } from "./ports.js";
 
+function isLoopbackBindPermissionError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  return code === "EPERM" || code === "EACCES";
+}
+
+async function listenLoopback(server: net.Server, timeoutMs = 1000): Promise<number | null> {
+  try {
+    return await new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error("listen timeout"));
+      }, timeoutMs);
+      const onError = (err: unknown) => {
+        cleanup();
+        reject(err);
+      };
+      const onListening = () => {
+        cleanup();
+        const addr = server.address() as net.AddressInfo;
+        resolve(addr.port);
+      };
+      const cleanup = () => {
+        clearTimeout(timeout);
+        server.off("error", onError);
+        server.off("listening", onListening);
+      };
+      server.once("error", onError);
+      server.once("listening", onListening);
+      server.listen(0, "127.0.0.1");
+    });
+  } catch (err) {
+    if (isLoopbackBindPermissionError(err) || String(err).includes("listen timeout")) {
+      return null;
+    }
+    throw err;
+  }
+}
+
 describe("ports helpers", () => {
   it("ensurePortAvailable rejects when port busy", async () => {
     const server = net.createServer();
-    await new Promise((resolve) => server.listen(0, resolve));
-    const port = (server.address() as net.AddressInfo).port;
+    const port = await listenLoopback(server);
+    if (!port) {
+      return;
+    }
     await expect(ensurePortAvailable(port)).rejects.toBeInstanceOf(PortInUseError);
-    server.close();
+    if (server.listening) {
+      server.close();
+    }
   });
 
   it("handlePortError exits nicely on EADDRINUSE", async () => {

@@ -1,4 +1,6 @@
 import { Command } from "commander";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let runtimeStub: {
@@ -14,11 +16,17 @@ let runtimeStub: {
   stop: ReturnType<typeof vi.fn>;
 };
 
-vi.mock("../../extensions/voice-call/src/runtime.js", () => ({
-  createVoiceCallRuntime: vi.fn(async () => runtimeStub),
-}));
+const voiceCallIndexTs = path.resolve(process.cwd(), "extensions", "voice-call", "index.ts");
+const voiceCallIndexJs = path.resolve(process.cwd(), "extensions", "voice-call", "index.js");
+const hasVoiceCall = fs.existsSync(voiceCallIndexTs) || fs.existsSync(voiceCallIndexJs);
 
-import plugin from "../../extensions/voice-call/index.js";
+if (hasVoiceCall) {
+  vi.mock("../../extensions/voice-call/src/runtime.js", () => ({
+    createVoiceCallRuntime: vi.fn(async () => runtimeStub),
+  }));
+}
+
+const plugin = hasVoiceCall ? (await import("../../extensions/voice-call/index.js")).default : null;
 
 const noopLogger = {
   info: vi.fn(),
@@ -54,7 +62,9 @@ function setup(config: Record<string, unknown>): Registered {
   return { methods, tools };
 }
 
-describe("voice-call plugin", () => {
+const describeVoiceCall = hasVoiceCall ? describe : describe.skip;
+
+describeVoiceCall("voice-call plugin", () => {
   beforeEach(() => {
     runtimeStub = {
       config: { toNumber: "+15550001234" },

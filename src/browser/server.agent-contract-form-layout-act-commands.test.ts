@@ -1,6 +1,6 @@
-import { type AddressInfo, createServer } from "node:net";
 import { fetch as realFetch } from "undici";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getLoopbackFreePort } from "../test-utils/ports.js";
 import { canListenOnLoopback } from "./test-helpers.js";
 
 let testPort = 0;
@@ -158,22 +158,6 @@ vi.mock("./screenshot.js", () => ({
   })),
 }));
 
-async function getFreePort(): Promise<number> {
-  while (true) {
-    const port = await new Promise<number>((resolve, reject) => {
-      const s = createServer();
-      s.once("error", reject);
-      s.listen(0, "127.0.0.1", () => {
-        const assigned = (s.address() as AddressInfo).port;
-        s.close((err) => (err ? reject(err) : resolve(assigned)));
-      });
-    });
-    if (port < 65535) {
-      return port;
-    }
-  }
-}
-
 function makeResponse(
   body: unknown,
   init?: { ok?: boolean; status?: number; text?: string },
@@ -210,7 +194,7 @@ describeLoopback("browser control server", () => {
       fn.mockClear();
     }
 
-    testPort = await getFreePort();
+    testPort = await getLoopbackFreePort();
     cdpBaseUrl = `http://127.0.0.1:${testPort + 1}`;
     prevGatewayPort = process.env.OPENCLAW_GATEWAY_PORT;
     process.env.OPENCLAW_GATEWAY_PORT = String(testPort - 2);

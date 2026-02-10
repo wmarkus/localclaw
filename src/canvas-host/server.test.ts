@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
+import { canBindToHost } from "../gateway/net.js";
 import { rawDataToString } from "../infra/ws.js";
 import { defaultRuntime } from "../runtime.js";
 import { CANVAS_HOST_PATH, CANVAS_WS_PATH, injectCanvasLiveReload } from "./a2ui.js";
@@ -20,6 +21,9 @@ describe("canvas host", () => {
   });
 
   it("creates a default index.html when missing", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-"));
 
     const server = await startCanvasHost({
@@ -44,6 +48,9 @@ describe("canvas host", () => {
   });
 
   it("skips live reload injection when disabled", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-"));
     await fs.writeFile(path.join(dir, "index.html"), "<html><body>no-reload</body></html>", "utf8");
 
@@ -72,6 +79,9 @@ describe("canvas host", () => {
   });
 
   it("serves canvas content from the mounted base path", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-"));
     await fs.writeFile(path.join(dir, "index.html"), "<html><body>v1</body></html>", "utf8");
 
@@ -121,6 +131,9 @@ describe("canvas host", () => {
   });
 
   it("reuses a handler without closing it twice", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-"));
     await fs.writeFile(path.join(dir, "index.html"), "<html><body>v1</body></html>", "utf8");
 
@@ -154,6 +167,9 @@ describe("canvas host", () => {
   });
 
   it("serves HTML with injection and broadcasts reload on file changes", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-"));
     const index = path.join(dir, "index.html");
     await fs.writeFile(index, "<html><body>v1</body></html>", "utf8");
@@ -205,6 +221,9 @@ describe("canvas host", () => {
   }, 20_000);
 
   it("serves the gateway-hosted A2UI scaffold", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-"));
     const a2uiRoot = path.resolve(process.cwd(), "src/canvas-host/a2ui");
     const bundlePath = path.join(a2uiRoot, "a2ui.bundle.js");

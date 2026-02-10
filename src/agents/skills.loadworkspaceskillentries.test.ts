@@ -46,6 +46,8 @@ describe("loadWorkspaceSkillEntries", () => {
     const bundledDir = path.join(workspaceDir, ".bundled");
     const pluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "local-skill");
 
+    await fs.mkdir(pluginRoot, { recursive: true });
+    await fs.writeFile(path.join(pluginRoot, "index.js"), "export {};\n", "utf-8");
     await fs.mkdir(path.join(pluginRoot, "skills", "local"), { recursive: true });
     await fs.writeFile(
       path.join(pluginRoot, "openclaw.plugin.json"),
@@ -85,6 +87,8 @@ describe("loadWorkspaceSkillEntries", () => {
     const bundledDir = path.join(workspaceDir, ".bundled");
     const pluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "local-skill");
 
+    await fs.mkdir(pluginRoot, { recursive: true });
+    await fs.writeFile(path.join(pluginRoot, "index.js"), "export {};\n", "utf-8");
     await fs.mkdir(path.join(pluginRoot, "skills", "local"), { recursive: true });
     await fs.writeFile(
       path.join(pluginRoot, "openclaw.plugin.json"),

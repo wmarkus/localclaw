@@ -1,9 +1,8 @@
 import fs from "node:fs/promises";
-import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { getDeterministicFreePortBlock } from "../test-utils/ports.js";
+import { getLoopbackFreePort, getLoopbackFreePortBlock } from "../test-utils/ports.js";
 
 const gatewayClientCalls: Array<{
   url?: string;
@@ -40,50 +39,8 @@ vi.mock("../gateway/client.js", () => ({
   },
 }));
 
-async function getFreePort(): Promise<number> {
-  try {
-    return await new Promise((resolve, reject) => {
-      const srv = createServer();
-      srv.on("error", (err) => {
-        srv.close();
-        reject(err);
-      });
-      srv.listen(0, "127.0.0.1", () => {
-        const addr = srv.address();
-        if (!addr || typeof addr === "string") {
-          srv.close();
-          reject(new Error("failed to acquire free port"));
-          return;
-        }
-        const port = addr.port;
-        srv.close((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(port);
-          }
-        });
-      });
-    });
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException | undefined)?.code;
-    if (code === "EPERM" || code === "EACCES") {
-      return 30_000 + (process.pid % 10_000);
-    }
-    throw err;
-  }
-}
-
 async function getFreeGatewayPort(): Promise<number> {
-  try {
-    return await getDeterministicFreePortBlock({ offsets: [0, 1, 2, 4] });
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException | undefined)?.code;
-    if (code === "EPERM" || code === "EACCES") {
-      return 40_000 + (process.pid % 10_000);
-    }
-    throw err;
-  }
+  return await getLoopbackFreePortBlock({ offsets: [0, 1, 2, 4] });
 }
 
 const runtime = {
@@ -195,7 +152,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
 
   it("writes gateway.remote url/token and callGateway uses them", async () => {
     const stateDir = await initStateDir("state-remote-");
-    const port = await getFreePort();
+    const port = await getLoopbackFreePort();
     const token = "tok_remote_123";
     const { runNonInteractiveOnboarding } = await import("./onboard-non-interactive.js");
     await runNonInteractiveOnboarding(

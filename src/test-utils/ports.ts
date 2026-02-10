@@ -1,6 +1,29 @@
 import { createServer } from "node:net";
 import { isMainThread, threadId } from "node:worker_threads";
 
+function isLoopbackBindPermissionError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  return code === "EPERM" || code === "EACCES";
+}
+
+export function getLoopbackFallbackPort(base = 30_000): number {
+  return base + (process.pid % 10_000);
+}
+
+export async function withLoopbackBindGuard<T>(
+  action: () => Promise<T>,
+  fallback: () => T,
+): Promise<T> {
+  try {
+    return await action();
+  } catch (err) {
+    if (isLoopbackBindPermissionError(err)) {
+      return fallback();
+    }
+    throw err;
+  }
+}
+
 async function isPortFree(port: number): Promise<boolean> {
   if (!Number.isFinite(port) || port <= 0 || port > 65535) {
     return false;
@@ -29,6 +52,10 @@ async function getOsFreePort(): Promise<number> {
       server.close((err) => (err ? reject(err) : resolve(port)));
     });
   });
+}
+
+export async function getLoopbackFreePort(): Promise<number> {
+  return await withLoopbackBindGuard(getOsFreePort, () => getLoopbackFallbackPort());
 }
 
 let nextTestPortOffset = 0;
@@ -89,4 +116,15 @@ export async function getDeterministicFreePortBlock(params?: {
   }
 
   throw new Error("failed to acquire a free port block");
+}
+
+export async function getLoopbackFreePortBlock(params?: {
+  offsets?: number[];
+  fallbackBase?: number;
+}): Promise<number> {
+  const fallbackBase = params?.fallbackBase ?? 40_000;
+  return await withLoopbackBindGuard(
+    () => getDeterministicFreePortBlock({ offsets: params?.offsets }),
+    () => getLoopbackFallbackPort(fallbackBase),
+  );
 }

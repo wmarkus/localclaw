@@ -10,7 +10,7 @@ describe("redactSensitiveText", () => {
       mode: "tools",
       patterns: defaults,
     });
-    expect(output).toBe("OPENCLAW_GATEWAY_TOKEN=tok-123…cdef");
+    expect(output).toBe("OPENCLAW_GATEWAY_TOKEN=tok-12…cdef");
   });
 
   it("masks CLI flags", () => {

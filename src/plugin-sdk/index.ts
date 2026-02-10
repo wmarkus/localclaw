@@ -172,6 +172,12 @@ export {
 } from "../channels/plugins/group-mentions.js";
 export { recordInboundSession } from "../channels/session.js";
 export {
+  disableTailscaleFunnel,
+  disableTailscaleServe,
+  enableTailscaleFunnel,
+  enableTailscaleServe,
+} from "../infra/tailscale.js";
+export {
   buildChannelKeyCandidates,
   normalizeChannelSlug,
   resolveChannelEntryMatch,

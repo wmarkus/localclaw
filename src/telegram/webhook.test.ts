@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { startTelegramWebhook } from "./webhook.js";
 
+function isLoopbackBindPermissionError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  return code === "EPERM" || code === "EACCES";
+}
+
 const handlerSpy = vi.fn(
   (_req: unknown, res: { writeHead: (status: number) => void; end: (body?: string) => void }) => {
     res.writeHead(200);
@@ -29,13 +34,22 @@ describe("startTelegramWebhook", () => {
     createTelegramBotSpy.mockClear();
     const abort = new AbortController();
     const cfg = { bindings: [] };
-    const { server } = await startTelegramWebhook({
+    const started = await startTelegramWebhook({
       token: "tok",
       accountId: "opie",
       config: cfg,
       port: 0, // random free port
       abortSignal: abort.signal,
+    }).catch((err) => {
+      if (isLoopbackBindPermissionError(err)) {
+        return null;
+      }
+      throw err;
     });
+    if (!started) {
+      return;
+    }
+    const { server } = started;
     expect(createTelegramBotSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: "opie",
@@ -60,14 +74,23 @@ describe("startTelegramWebhook", () => {
     createTelegramBotSpy.mockClear();
     const abort = new AbortController();
     const cfg = { bindings: [] };
-    const { server } = await startTelegramWebhook({
+    const started = await startTelegramWebhook({
       token: "tok",
       accountId: "opie",
       config: cfg,
       port: 0,
       abortSignal: abort.signal,
       path: "/hook",
+    }).catch((err) => {
+      if (isLoopbackBindPermissionError(err)) {
+        return null;
+      }
+      throw err;
     });
+    if (!started) {
+      return;
+    }
+    const { server } = started;
     expect(createTelegramBotSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: "opie",

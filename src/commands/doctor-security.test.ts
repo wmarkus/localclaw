@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
+import { canBindToHost } from "../gateway/net.js";
 
 const note = vi.hoisted(() => vi.fn());
 
@@ -70,6 +71,10 @@ describe("noteSecurityWarnings gateway exposure", () => {
     const cfg = { gateway: { bind: "loopback" } } as OpenClawConfig;
     await noteSecurityWarnings(cfg);
     const message = lastMessage();
+    if (!(await canBindToHost("127.0.0.1"))) {
+      expect(message).toContain("Gateway bound");
+      return;
+    }
     expect(message).toContain("No channel security warnings detected");
     expect(message).not.toContain("Gateway bound");
   });

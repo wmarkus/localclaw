@@ -21,17 +21,17 @@ describe("normalizeThinkLevel", () => {
 });
 
 describe("listThinkingLevels", () => {
-  it("includes xhigh for codex models", () => {
-    expect(listThinkingLevels(undefined, "gpt-oss-120b-codex")).toContain("xhigh");
-    expect(listThinkingLevels(undefined, "gpt-5.3-codex")).toContain("xhigh");
+  it("excludes xhigh for codex models", () => {
+    expect(listThinkingLevels(undefined, "gpt-oss-120b-codex")).not.toContain("xhigh");
+    expect(listThinkingLevels(undefined, "gpt-5.3-codex")).not.toContain("xhigh");
   });
 
   it("includes xhigh for ollama gpt-oss-120b", () => {
     expect(listThinkingLevels("ollama", "gpt-oss-120b")).toContain("xhigh");
   });
 
-  it("excludes xhigh for non-codex models", () => {
-    expect(listThinkingLevels(undefined, "gpt-oss-120b")).not.toContain("xhigh");
+  it("excludes xhigh for other local models", () => {
+    expect(listThinkingLevels("ollama", "mistral-8b")).not.toContain("xhigh");
   });
 });
 

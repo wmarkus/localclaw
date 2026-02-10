@@ -13,7 +13,7 @@ export function stripDowngradedToolCallText(text: string): string {
   if (!text) {
     return text;
   }
-  if (!/\[Tool (?:Call|Result)/i.test(text)) {
+  if (!/\[Tool (?:Call|Result)/i.test(text) && !/<invoke\b|<\/?tool_call>/i.test(text)) {
     return text;
   }
 
@@ -161,6 +161,10 @@ export function stripDowngradedToolCallText(text: string): string {
 
   // Remove [Tool Result for ID ...] blocks and their content.
   cleaned = cleaned.replace(/\[Tool Result for ID[^\]]*\]\n?[\s\S]*?(?=\n*\[Tool |\n*$)/gi, "");
+
+  // Remove XML-like tool call artifacts.
+  cleaned = cleaned.replace(/<invoke\b[^>]*>[\s\S]*?<\/invoke>/gi, "");
+  cleaned = cleaned.replace(/<\/?tool_call>/gi, "");
 
   return cleaned.trim();
 }

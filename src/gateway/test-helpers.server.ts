@@ -16,7 +16,7 @@ import { drainSystemEvents, peekSystemEvents } from "../infra/system-events.js";
 import { rawDataToString } from "../infra/ws.js";
 import { resetLogger, setLoggerOverride } from "../logging.js";
 import { DEFAULT_AGENT_ID, toAgentStoreSessionKey } from "../routing/session-key.js";
-import { getDeterministicFreePortBlock } from "../test-utils/ports.js";
+import { getLoopbackFreePortBlock } from "../test-utils/ports.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { buildDeviceAuthPayload } from "./device-auth.js";
 import { PROTOCOL_VERSION } from "./protocol/index.js";
@@ -227,7 +227,7 @@ export function installGatewayTestHooks(options?: { scope?: "test" | "suite" }) 
 }
 
 export async function getFreePort(): Promise<number> {
-  return await getDeterministicFreePortBlock({ offsets: [0, 1, 2, 3, 4] });
+  return await getLoopbackFreePortBlock({ offsets: [0, 1, 2, 3, 4] });
 }
 
 export async function occupyPort(): Promise<{

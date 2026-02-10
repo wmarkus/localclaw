@@ -315,7 +315,7 @@ describe("gateway send mirroring", () => {
 });
 
 describe("gateway poll handling", () => {
-  it("trims poll options to pollMaxOptions", async () => {
+  it("errors when poll options exceed pollMaxOptions", async () => {
     const sendPoll = vi.fn().mockResolvedValue({ messageId: "poll-1" });
     pluginMocks.getChannelPlugin.mockReturnValue({
       outbound: { sendPoll, pollMaxOptions: 2 },
@@ -337,18 +337,11 @@ describe("gateway poll handling", () => {
       isWebchatConnect: () => false,
     });
 
-    expect(sendPoll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        poll: expect.objectContaining({
-          options: ["A", "B"],
-        }),
-      }),
-    );
+    expect(sendPoll).not.toHaveBeenCalled();
     expect(respond).toHaveBeenCalledWith(
-      true,
-      expect.objectContaining({ runId: "idem-poll-1", messageId: "poll-1", channel: "slack" }),
+      false,
       undefined,
-      { channel: "slack" },
+      expect.objectContaining({ message: expect.stringMatching(/at most 2/i) }),
     );
   });
 

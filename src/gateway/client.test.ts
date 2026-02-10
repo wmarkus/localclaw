@@ -1,20 +1,9 @@
 import { createServer as createHttpsServer } from "node:https";
-import { createServer } from "node:net";
 import { afterEach, describe, expect, test } from "vitest";
 import { WebSocketServer } from "ws";
 import { rawDataToString } from "../infra/ws.js";
+import { getLoopbackFreePort } from "../test-utils/ports.js";
 import { GatewayClient } from "./client.js";
-
-// Find a free localhost port for ad-hoc WS servers.
-async function getFreePort(): Promise<number> {
-  return await new Promise((resolve, reject) => {
-    const server = createServer();
-    server.listen(0, "127.0.0.1", () => {
-      const port = (server.address() as { port: number }).port;
-      server.close((err) => (err ? reject(err) : resolve(port)));
-    });
-  });
-}
 
 describe("GatewayClient", () => {
   let wss: WebSocketServer | null = null;
@@ -37,7 +26,7 @@ describe("GatewayClient", () => {
   });
 
   test("closes on missing ticks", async () => {
-    const port = await getFreePort();
+    const port = await getLoopbackFreePort();
     wss = new WebSocketServer({ port, host: "127.0.0.1" });
 
     wss.on("connection", (socket) => {

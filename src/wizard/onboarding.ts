@@ -7,6 +7,7 @@ import type {
 import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { QuickstartGatewayDefaults, WizardFlow } from "./onboarding.types.js";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { warnIfModelConfigLooksOff } from "../commands/auth-choice.js";
@@ -360,15 +361,36 @@ export async function runOnboardingWizard(
     },
   };
 
-  const modelSelection = await promptDefaultModel({
-    config: nextConfig,
-    prompter,
-    allowKeep: true,
-    ignoreAllowlist: true,
-    preferredProvider: "ollama",
-  });
-  if (modelSelection.model) {
-    nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
+  const skipModelPrompt =
+    opts.authChoice === "skip" &&
+    Boolean(opts.flow) &&
+    Boolean(opts.skipProviders) &&
+    Boolean(opts.skipSkills) &&
+    Boolean(opts.skipHealth) &&
+    Boolean(opts.skipUi);
+  if (skipModelPrompt) {
+    const existingModel = nextConfig.agents?.defaults?.model;
+    const hasModel =
+      (typeof existingModel === "string" && existingModel.trim().length > 0) ||
+      (typeof existingModel === "object" &&
+        existingModel !== null &&
+        "primary" in existingModel &&
+        typeof existingModel.primary === "string" &&
+        existingModel.primary.trim().length > 0);
+    if (!hasModel) {
+      nextConfig = applyPrimaryModel(nextConfig, `${DEFAULT_PROVIDER}/${DEFAULT_MODEL}`);
+    }
+  } else {
+    const modelSelection = await promptDefaultModel({
+      config: nextConfig,
+      prompter,
+      allowKeep: true,
+      ignoreAllowlist: true,
+      preferredProvider: "ollama",
+    });
+    if (modelSelection.model) {
+      nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
+    }
   }
 
   await warnIfModelConfigLooksOff(nextConfig, prompter);

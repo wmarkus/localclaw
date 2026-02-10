@@ -1,5 +1,7 @@
 import type { AgentMessage, AgentToolResult } from "@mariozechner/pi-agent-core";
+import { sanitizeToolCallIds, type ToolCallIdMode } from "../tool-call-id.js";
 import { sanitizeContentBlocksImages } from "../tool-images.js";
+import { stripThoughtSignatures } from "./bootstrap.js";
 
 type ContentBlock = AgentToolResult<unknown>["content"][number];
 
@@ -30,6 +32,8 @@ export async function sanitizeSessionMessagesImages(
   label: string,
   options?: {
     sanitizeMode?: "full" | "images-only";
+    sanitizeToolCallIds?: boolean;
+    toolCallIdMode?: ToolCallIdMode;
   },
 ): Promise<AgentMessage[]> {
   const sanitizeMode = options?.sanitizeMode ?? "full";
@@ -75,7 +79,10 @@ export async function sanitizeSessionMessagesImages(
             content as unknown as ContentBlock[],
             label,
           )) as unknown as typeof assistantMsg.content;
-          out.push({ ...assistantMsg, content: nextContent });
+          const cleaned = allowNonImageSanitization
+            ? stripThoughtSignatures(nextContent)
+            : nextContent;
+          out.push({ ...assistantMsg, content: cleaned });
         } else {
           out.push(assistantMsg);
         }
@@ -105,15 +112,19 @@ export async function sanitizeSessionMessagesImages(
           filteredContent as unknown as ContentBlock[],
           label,
         )) as unknown as typeof assistantMsg.content;
-        if (finalContent.length === 0) {
+        const cleaned = stripThoughtSignatures(finalContent);
+        if (cleaned.length === 0) {
           continue;
         }
-        out.push({ ...assistantMsg, content: finalContent });
+        out.push({ ...assistantMsg, content: cleaned });
         continue;
       }
     }
 
     out.push(msg);
+  }
+  if (options?.sanitizeToolCallIds) {
+    return sanitizeToolCallIds(out, options.toolCallIdMode);
   }
   return out;
 }

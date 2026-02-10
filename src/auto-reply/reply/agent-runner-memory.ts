@@ -5,7 +5,9 @@ import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
 import type { FollowupRun } from "./queue.js";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
+import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
+import { normalizeProviderId } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import {
@@ -22,6 +24,8 @@ import {
   shouldRunMemoryFlush,
 } from "./memory-flush.js";
 import { incrementCompactionCount } from "./session-updates.js";
+
+const LOCAL_PROVIDER_ID = normalizeProviderId(DEFAULT_PROVIDER);
 
 export async function runMemoryFlushIfNeeded(params: {
   cfg: OpenClawConfig;
@@ -105,7 +109,8 @@ export async function runMemoryFlushIfNeeded(params: {
       ),
       run: (provider, model) => {
         const authProfileId =
-          provider === params.followupRun.run.provider
+          provider === params.followupRun.run.provider &&
+          normalizeProviderId(provider) !== LOCAL_PROVIDER_ID
             ? params.followupRun.run.authProfileId
             : undefined;
         return runEmbeddedPiAgent({
