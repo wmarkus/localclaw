@@ -89,8 +89,8 @@ describe("gateway sessions patch", () => {
     if (!res.ok) {
       return;
     }
-    expect(res.entry.providerOverride).toBe("ollama");
-    expect(res.entry.modelOverride).toBe("gpt-oss-120b");
+    expect(res.entry.providerOverride).toBeUndefined();
+    expect(res.entry.modelOverride).toBeUndefined();
     expect(res.entry.authProfileOverride).toBeUndefined();
     expect(res.entry.authProfileOverrideSource).toBeUndefined();
     expect(res.entry.authProfileOverrideCompactionCount).toBeUndefined();

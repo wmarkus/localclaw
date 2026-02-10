@@ -1,12 +1,19 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
+import { canBindToHost } from "./net.js";
 import { resetTestPluginRegistry, setTestPluginRegistry, testState } from "./test-helpers.mocks.js";
 import { installGatewayTestHooks, getFreePort, startGatewayServer } from "./test-helpers.server.js";
 
 installGatewayTestHooks({ scope: "suite" });
+
+let canListen = true;
+
+beforeAll(async () => {
+  canListen = await canBindToHost("127.0.0.1");
+});
 
 beforeEach(() => {
   // Ensure these tests are not affected by host env vars.
@@ -24,6 +31,9 @@ const resolveGatewayToken = (): string => {
 
 describe("POST /tools/invoke", () => {
   it("invokes a tool and returns {ok:true,result}", async () => {
+    if (!canListen) {
+      return;
+    }
     // Allow the agents_list tool for main agent.
     testState.agentsConfig = {
       list: [
@@ -58,6 +68,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("supports tools.alsoAllow as additive allowlist (profile stage)", async () => {
+    if (!canListen) {
+      return;
+    }
     // No explicit tool allowlist; rely on profile + alsoAllow.
     testState.agentsConfig = {
       list: [{ id: "main" }],
@@ -89,6 +102,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("supports tools.alsoAllow without allow/profile (implicit allow-all)", async () => {
+    if (!canListen) {
+      return;
+    }
     testState.agentsConfig = {
       list: [{ id: "main" }],
       // oxlint-disable-next-line typescript/no-explicit-any
@@ -120,6 +136,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("accepts password auth when bearer token matches", async () => {
+    if (!canListen) {
+      return;
+    }
     testState.agentsConfig = {
       list: [
         {
@@ -153,6 +172,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("routes tools invoke before plugin HTTP handlers", async () => {
+    if (!canListen) {
+      return;
+    }
     const pluginHandler = vi.fn(async (_req: IncomingMessage, res: ServerResponse) => {
       res.statusCode = 418;
       res.end("plugin");
@@ -207,6 +229,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("rejects unauthorized when auth mode is token and header is missing", async () => {
+    if (!canListen) {
+      return;
+    }
     testState.agentsConfig = {
       list: [
         {
@@ -237,6 +262,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("returns 404 when tool is not allowlisted", async () => {
+    if (!canListen) {
+      return;
+    }
     testState.agentsConfig = {
       list: [
         {
@@ -265,6 +293,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("respects tools.profile allowlist", async () => {
+    if (!canListen) {
+      return;
+    }
     testState.agentsConfig = {
       list: [
         {
@@ -299,6 +330,9 @@ describe("POST /tools/invoke", () => {
   });
 
   it("uses the configured main session key when sessionKey is missing or main", async () => {
+    if (!canListen) {
+      return;
+    }
     testState.agentsConfig = {
       list: [
         {

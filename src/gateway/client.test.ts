@@ -4,6 +4,7 @@ import { WebSocketServer } from "ws";
 import { rawDataToString } from "../infra/ws.js";
 import { getLoopbackFreePort } from "../test-utils/ports.js";
 import { GatewayClient } from "./client.js";
+import { canBindToHost } from "./net.js";
 
 describe("GatewayClient", () => {
   let wss: WebSocketServer | null = null;
@@ -26,6 +27,9 @@ describe("GatewayClient", () => {
   });
 
   test("closes on missing ticks", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const port = await getLoopbackFreePort();
     wss = new WebSocketServer({ port, host: "127.0.0.1" });
 
@@ -69,6 +73,9 @@ describe("GatewayClient", () => {
   }, 4000);
 
   test("rejects mismatched tls fingerprint", async () => {
+    if (!(await canBindToHost("127.0.0.1"))) {
+      return;
+    }
     const key = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDrur5CWp4psMMb
 DTPY1aN46HPDxRchGgh8XedNkrlc4z1KFiyLUsXpVIhuyoXq1fflpTDz7++pGEDJ

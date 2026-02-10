@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { WebSocket } from "ws";
 import { loadOrCreateDeviceIdentity } from "../infra/device-identity.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { canBindToHost } from "./net.js";
 
 vi.mock("../infra/update-runner.js", () => ({
   runGatewayUpdate: vi.fn(async () => ({
@@ -22,11 +23,16 @@ import {
 
 installGatewayTestHooks({ scope: "suite" });
 
-let server: Awaited<ReturnType<typeof startServerWithClient>>["server"];
-let ws: WebSocket;
-let port: number;
+let canListen = true;
+let server: Awaited<ReturnType<typeof startServerWithClient>>["server"] | null = null;
+let ws: WebSocket | null = null;
+let port: number | null = null;
 
 beforeAll(async () => {
+  canListen = await canBindToHost("127.0.0.1");
+  if (!canListen) {
+    return;
+  }
   const token = "test-gateway-token-1234567890";
   const started = await startServerWithClient(token);
   server = started.server;
@@ -36,12 +42,20 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  ws.close();
-  await server.close();
+  if (!canListen) {
+    return;
+  }
+  ws?.close();
+  if (server) {
+    await server.close();
+  }
 });
 
 describe("late-arriving invoke results", () => {
   test("returns success for unknown invoke id (late arrival after timeout)", async () => {
+    if (!canListen || port === null) {
+      return;
+    }
     // Create a node client WebSocket
     const nodeWs = new WebSocket(`ws://127.0.0.1:${port}`);
     await new Promise<void>((resolve) => nodeWs.once("open", resolve));
@@ -85,6 +99,9 @@ describe("late-arriving invoke results", () => {
   });
 
   test("returns success for unknown invoke id with error payload", async () => {
+    if (!canListen || port === null) {
+      return;
+    }
     // Verifies late results are accepted regardless of their ok/error status
     const nodeWs = new WebSocket(`ws://127.0.0.1:${port}`);
     await new Promise<void>((resolve) => nodeWs.once("open", resolve));
