@@ -434,7 +434,7 @@ export function buildStatusMessage(args: StatusArgs): string {
   const isLocalProvider = normalizeProviderId(provider) === normalizeProviderId(DEFAULT_PROVIDER);
   const authLabelValue =
     !isLocalProvider && authMode && authMode !== "unknown" ? authMode : undefined;
-  const showCost = authMode === "api-key" || authMode === "mixed";
+  const showCost = authMode === "api-key";
   const costConfig = showCost
     ? resolveModelCostConfig({
         provider,

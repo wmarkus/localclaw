@@ -5,7 +5,7 @@ const DEFAULT_MODE: VoiceCallMode = "notify";
 const DEFAULT_WEBHOOK_PATH = "/voice/webhook";
 const DEFAULT_STREAM_PATH = "/voice/stream";
 
-const PROVIDERS: VoiceCallProvider[] = ["mock", "twilio", "telnyx", "plivo"];
+const PROVIDERS = new Set<VoiceCallProvider>(["mock", "twilio", "telnyx", "plivo"]);
 
 function readString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -52,7 +52,7 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
 function readProvider(value: unknown): VoiceCallProvider {
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
-    if (PROVIDERS.includes(normalized as VoiceCallProvider)) {
+    if (PROVIDERS.has(normalized as VoiceCallProvider)) {
       return normalized as VoiceCallProvider;
     }
   }

@@ -103,7 +103,7 @@ function escapeXml(value: string): string {
 }
 
 export function buildTwilioSignatureBase(url: string, params: Record<string, string>): string {
-  const keys = Object.keys(params).sort();
+  const keys = Object.keys(params).toSorted();
   let base = url;
   for (const key of keys) {
     const value = params[key] ?? "";

@@ -371,12 +371,7 @@ export async function runOnboardingWizard(
   if (skipModelPrompt) {
     const existingModel = nextConfig.agents?.defaults?.model;
     const hasModel =
-      (typeof existingModel === "string" && existingModel.trim().length > 0) ||
-      (typeof existingModel === "object" &&
-        existingModel !== null &&
-        "primary" in existingModel &&
-        typeof existingModel.primary === "string" &&
-        existingModel.primary.trim().length > 0);
+      typeof existingModel?.primary === "string" && existingModel.primary.trim().length > 0;
     if (!hasModel) {
       nextConfig = applyPrimaryModel(nextConfig, `${DEFAULT_PROVIDER}/${DEFAULT_MODEL}`);
     }

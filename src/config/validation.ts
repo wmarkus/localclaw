@@ -201,10 +201,11 @@ function validateLocalOnlyModels(config: OpenClawConfig): ConfigValidationIssue[
   const authProfiles = config.auth?.profiles;
   if (authProfiles && typeof authProfiles === "object") {
     for (const [profileId, profile] of Object.entries(authProfiles)) {
-      const provider =
+      const providerRaw =
         profile && typeof profile === "object"
-          ? String((profile as { provider?: unknown }).provider ?? "")
-          : "";
+          ? (profile as { provider?: unknown }).provider
+          : undefined;
+      const provider = typeof providerRaw === "string" ? providerRaw : "";
       if (provider.trim()) {
         validateProviderKey(provider, `auth.profiles.${profileId}.provider`);
       }
@@ -249,11 +250,6 @@ function validateLocalOnlyModels(config: OpenClawConfig): ConfigValidationIssue[
       const base = `agents.list.${index}`;
       validateModelList(agent.model, `${base}.model`);
       validateModelList((agent as { imageModel?: unknown }).imageModel, `${base}.imageModel`);
-      if ((agent as { models?: Record<string, unknown> }).models) {
-        for (const key of Object.keys((agent as { models: Record<string, unknown> }).models)) {
-          validateModelRef(key, `${base}.models.${key}`);
-        }
-      }
       if (agent.heartbeat?.model) {
         validateModelRef(agent.heartbeat.model, `${base}.heartbeat.model`);
       }

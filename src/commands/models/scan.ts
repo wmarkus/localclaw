@@ -115,22 +115,22 @@ async function fetchOllamaTags(timeoutMs: number): Promise<OllamaModel[]> {
 }
 
 function toCandidates(models: OllamaModel[]): ScanCandidate[] {
-  return models
-    .map((model) => {
-      const id = String(model.name ?? "").trim();
-      if (!id) {
-        return null;
-      }
-      const modifiedAtMs = model.modified_at ? Date.parse(model.modified_at) : undefined;
-      const paramsB = parseParamSizeToBillions(model.details?.parameter_size);
-      return {
+  return models.flatMap((model) => {
+    const id = String(model.name ?? "").trim();
+    if (!id) {
+      return [];
+    }
+    const modifiedAtMs = model.modified_at ? Date.parse(model.modified_at) : undefined;
+    const paramsB = parseParamSizeToBillions(model.details?.parameter_size);
+    return [
+      {
         id,
         paramsB,
         modifiedAtMs: Number.isFinite(modifiedAtMs) ? modifiedAtMs : undefined,
         sizeBytes: typeof model.size === "number" ? model.size : undefined,
-      } satisfies ScanCandidate;
-    })
-    .filter((entry): entry is ScanCandidate => Boolean(entry));
+      } satisfies ScanCandidate,
+    ];
+  });
 }
 
 function filterCandidates(params: {
@@ -159,7 +159,7 @@ function filterCandidates(params: {
 }
 
 function sortCandidates(candidates: ScanCandidate[]): ScanCandidate[] {
-  return [...candidates].sort((a, b) => {
+  return candidates.toSorted((a, b) => {
     const paramsA = a.paramsB ?? -1;
     const paramsB = b.paramsB ?? -1;
     if (paramsA !== paramsB) {

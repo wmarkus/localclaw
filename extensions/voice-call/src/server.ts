@@ -61,6 +61,36 @@ function parseFormBody(body: string): Record<string, string> {
   return parsed;
 }
 
+function parseWebSocketPayload(data: unknown): Record<string, unknown> | null {
+  const raw = (() => {
+    if (typeof data === "string") {
+      return data;
+    }
+    if (Buffer.isBuffer(data)) {
+      return data.toString("utf-8");
+    }
+    if (data instanceof ArrayBuffer) {
+      return Buffer.from(data).toString("utf-8");
+    }
+    if (Array.isArray(data) && data.every((chunk) => Buffer.isBuffer(chunk))) {
+      return Buffer.concat(data).toString("utf-8");
+    }
+    return null;
+  })();
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function resolveRequestUrl(req: IncomingMessage, config: VoiceCallConfig): string | null {
   const publicUrl = resolvePublicWebhookUrl(config);
   if (publicUrl) {
@@ -212,12 +242,7 @@ export function createVoiceCallServer(params: {
     const session: StreamSession = { ws };
 
     ws.on("message", (data) => {
-      let payload: Record<string, unknown> | null = null;
-      try {
-        payload = JSON.parse(data.toString());
-      } catch {
-        return;
-      }
+      const payload = parseWebSocketPayload(data);
       if (!payload || typeof payload.event !== "string") {
         return;
       }

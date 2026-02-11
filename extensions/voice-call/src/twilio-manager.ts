@@ -90,7 +90,8 @@ export class TwilioVoiceCallManager implements VoiceCallManager {
       return { success: false, error: result.error };
     }
 
-    const callSid = String(result.data.sid ?? "").trim();
+    const sid = result.data.sid;
+    const callSid = typeof sid === "string" ? sid.trim() : "";
     if (!callSid) {
       this.emit({ type: "error", ts: Date.now(), message: "Twilio did not return CallSid" });
       return { success: false, error: "Twilio did not return CallSid" };
